@@ -1,0 +1,93 @@
+# ====================
+# Python (Backend)
+# ====================
+
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+venv/
+env/
+ENV/
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints
+
+# Logs & temp
+*.log
+*.tmp
+*.swp
+
+# Model files
+app/models/*.h5
+app/models/*.pkl
+app/models/*.pt
+app/models/*.joblib
+app/models/label_map.json
+
+# Datasets (excluded to keep repo light)
+datasets/
+data/
+*.csv
+*.tsv
+*.zip
+*.tar
+*.gz
+
+# ====================
+# Node / React (Frontend)
+# ====================
+
+# dependencies
+node_modules/
+jspm_packages/
+
+# production build
+build/
+dist/
+
+# misc
+.DS_Store
+*.pem
+*.key
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Editor / IDE settings
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
