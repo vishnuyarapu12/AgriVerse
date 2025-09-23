@@ -6,11 +6,12 @@ A comprehensive AI-powered agricultural advisory system that provides crop disea
 
 ## ✨ Features
 
-### 🔬 **Disease Detection**
-- Upload crop/leaf images for AI-powered disease identification
-- CNN-based machine learning model with confidence scoring
+### 🔬 **Rice Disease Detection**
+- Upload rice leaf images for AI-powered disease identification
+- CNN-based machine learning model with confidence scoring (>85% accuracy)
 - Detailed treatment recommendations and preventive measures
-- Support for major crops (Tomato, Potato, Corn, Apple, Grape)
+- Support for rice diseases: Bacterial leaf blight, Brown spot, Leaf smut
+- Confidence thresholds with safety warnings for low-confidence predictions
 
 ### 🌾 **Comprehensive Advisory System**
 - Crop-specific guidance based on location and soil type
@@ -22,14 +23,15 @@ A comprehensive AI-powered agricultural advisory system that provides crop disea
 ### 🎤 **Voice Input/Output**
 - Speech-to-text for voice queries
 - Text-to-speech for audio responses
-- Works in multiple languages (English, Hindi, Telugu, Tamil, Kannada)
-- Browser-based speech recognition
+- Works in multiple languages (English, Hindi, Malayalam, Telugu, Tamil, Kannada)
+- Browser-based speech recognition with language mapping
 
 ### 🌍 **Multilingual Support**
-- Full UI translation in 5 languages
-- Voice input/output in regional languages
+- Full UI translation in 6 languages including Malayalam
+- Voice input/output in regional languages (EN, HI, ML, TE, TA, KN)
 - Culturally appropriate farming advice
 - Language-specific government scheme information
+- Gemini 2.5 Pro integration for enhanced language support
 
 ### 📱 **Modern UI/UX**
 - Responsive design for mobile and desktop
@@ -149,17 +151,38 @@ npm run dev
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/detect-disease/` | POST | Upload image for disease detection |
+| `/detect-disease/` | POST | Upload rice leaf image for disease detection |
 | `/advisory/` | POST | Get comprehensive farming advice |
+| `/ask-gemini/` | POST | Direct Gemini 2.5 Pro query testing |
+| `/tts/` | POST | Enhanced text-to-speech with language support |
 | `/speech-to-text/` | POST | Convert voice to text |
-| `/text-to-speech/` | POST | Convert text to speech |
+| `/text-to-speech/` | POST | Convert text to speech (legacy) |
 | `/feedback/` | POST | Submit user feedback |
 | `/history` | GET | Retrieve query history |
 | `/languages` | GET | Get supported languages |
+| `/health` | GET | System health check |
 
 ### API Documentation
 
 Visit `http://127.0.0.1:8000/docs` for interactive API documentation.
+
+### Model Training
+
+```bash
+# Train the rice disease CNN model
+cd backend/app
+python train_rice_disease.py
+
+# Create sample model for testing
+python create_sample_model.py
+
+# Run system tests
+python test_system.py
+```
+
+### Evaluation
+
+See [EVALUATION_INSTRUCTIONS.md](EVALUATION_INSTRUCTIONS.md) for comprehensive testing and evaluation guidelines.
 
 ## 🎯 Usage Guide
 
@@ -191,6 +214,7 @@ Visit `http://127.0.0.1:8000/docs` for interactive API documentation.
 
 - **English** - Full support
 - **हिंदी (Hindi)** - Full support  
+- **മലയാളം (Malayalam)** - Full support
 - **తెలుగు (Telugu)** - Full support
 - **தமிழ் (Tamil)** - Voice and basic UI
 - **ಕನ್ನಡ (Kannada)** - Voice and basic UI
@@ -213,10 +237,10 @@ Visit `http://127.0.0.1:8000/docs` for interactive API documentation.
 - **Vite** - Build tool and development server
 
 ### ML/AI Components
-- **CNN Model** - Crop disease classification
-- **Gemini Pro** - Natural language processing
-- **Speech Recognition API** - Voice input
-- **Google TTS** - Voice output
+- **CNN Model** - Rice disease classification (EfficientNetB0/MobileNetV2)
+- **Gemini 2.5 Pro** - Advanced natural language processing
+- **Speech Recognition API** - Voice input with language mapping
+- **Google TTS** - Voice output in multiple languages
 
 ## 📱 Mobile Support
 

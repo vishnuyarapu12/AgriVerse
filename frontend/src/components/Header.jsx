@@ -31,7 +31,7 @@ const Header = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            {t('Welcome to AgriVerse')}
+            {t('AI Farmer Query Support')}
           </motion.h1>
           
           <motion.p 

@@ -48,8 +48,8 @@ class VoiceService:
         if PYTTSX3_AVAILABLE:
             try:
                 self.tts_engine = pyttsx3.init()
-                # Configure TTS settings
-                self.tts_engine.setProperty('rate', 150)  # Speed of speech
+                # Configure TTS settings - increased speed for faster speech
+                self.tts_engine.setProperty('rate', 200)  # Increased speed of speech (was 150)
                 self.tts_engine.setProperty('volume', 0.8)  # Volume level
             except Exception as e:
                 logger.error(f"Failed to initialize pyttsx3 engine: {e}")
@@ -66,6 +66,11 @@ class VoiceService:
                 'google': 'hi-IN',
                 'gtts': 'hi',
                 'display_name': 'Hindi'
+            },
+            'ml': {
+                'google': 'ml-IN',
+                'gtts': 'ml',
+                'display_name': 'Malayalam'
             },
             'te': {
                 'google': 'te-IN',

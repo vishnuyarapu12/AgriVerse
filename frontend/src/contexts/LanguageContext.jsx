@@ -182,6 +182,91 @@ const translations = {
     'Multilingual Support': 'बहुभाषी समर्थन',
   },
   
+  ml: {
+    // Navigation
+    'Disease Detection': 'രോഗ നിർണ്ണയം',
+    'Crop Advisory': 'വിള ഉപദേശം',
+    'Query History': 'ചോദ്യ ചരിത്രം',
+    'Voice Settings': 'വോയ്സ് സെറ്റിംഗുകൾ',
+    
+    // Headers
+    'AI Farmer Support': 'AI കർഷക പിന്തുണ - അഗ്രിവേഴ്സ്',
+    'Welcome to AgriVerse': 'അഗ്രിവേഴ്സിലേക്ക് സ്വാഗതം',
+    'subtitle': 'വിള രോഗ നിർണ്ണയം, കാർഷിക മാർഗദർശനം, മാർക്കറ്റ് അന്തർദൃഷ്ടികൾ എന്നിവയ്ക്കായി നിങ്ങളുടെ AI-നിയന്ത്രിത കാർഷിക ഉപദേഷ്ടാവ്',
+    
+    // Disease Detection
+    'Upload Image': 'വിള ചിത്രം അപ്‌ലോഡ് ചെയ്യുക',
+    'Enter Query': 'നിങ്ങളുടെ വിള പ്രശ്നം വിവരിക്കുക',
+    'Voice Input': '🎤 വോയ്സ് ഇൻപുട്ട്',
+    'Submit': 'വിശകലനം ചെയ്യുക',
+    'Language': 'ഭാഷ',
+    'Select Language': 'ഭാഷ തിരഞ്ഞെടുക്കുക',
+    
+    // Advisory Form
+    'Crop Name': 'വിളയുടെ പേര്',
+    'Location': 'സ്ഥലം',
+    'Soil Type': 'മണ്ണിന്റെ തരം',
+    'Additional Query': 'അധിക ചോദ്യങ്ങൾ',
+    'Get Advice': 'ഉപദേശം നേടുക',
+    
+    // Placeholders
+    'Enter crop name': 'വിളയുടെ പേര് നൽകുക (ഉദാ: ടൊമാറ്റോ, ഗോതമ്പ്, അരി)',
+    'Enter location': 'നിങ്ങളുടെ സ്ഥലം നൽകുക (ഉദാ: പഞ്ചാബ്, മഹാരാഷ്ട്ര)',
+    'Select soil type': 'നിങ്ങളുടെ മണ്ണിന്റെ തരം തിരഞ്ഞെടുക്കുക',
+    'Enter additional questions': 'വളങ്ങൾ, കാലാവസ്ഥ, മാർക്കറ്റ് വിലകൾ എന്നിവയെക്കുറിച്ച് ചോദിക്കുക...',
+    'Describe crop problem': 'നിങ്ങളുടെ വിളകളിൽ നിങ്ങൾ നിരീക്ഷിക്കുന്നത് വിവരിക്കുക...',
+    
+    // Soil types
+    'Alluvial': 'അലൂവിയൽ',
+    'Black': 'കറുത്ത (റെഗർ)',
+    'Red': 'ചുവപ്പ്',
+    'Laterite': 'ലാറ്ററൈറ്റ്',
+    'Sandy': 'മണൽ',
+    'Clay': 'കളിമണ്ണ്',
+    'Loamy': 'ചെളി',
+    
+    // Response Card
+    'AI Response': 'AI ഉപദേശ പ്രതികരണം',
+    'Prediction': 'രോഗ പ്രവചനം',
+    'Confidence': 'ആത്മവിശ്വാസ നില',
+    'Advisory': 'ചികിത്സാ ഉപദേശം',
+    'Play Audio': '🔊 ഓഡിയോ പ്രതികരണം കേൾക്കുക',
+    'Feedback': 'ഇത് സഹായകരമായിരുന്നുവോ?',
+    'Thumbs Up': '👍 സഹായകരം',
+    'Thumbs Down': '👎 സഹായകരമല്ല',
+    
+    // History
+    'Recent Queries': 'സമീപകാല ചോദ്യങ്ങൾ',
+    'No History': 'ചോദ്യ ചരിത്രം ലഭ്യമല്ല',
+    'Clear History': 'ചരിത്രം മായ്ക്കുക',
+    
+    // Voice
+    'Voice Capabilities': 'വോയ്സ് ഇൻപുട്ട്/ഔട്ട്പുട്ട് കഴിവുകൾ',
+    'Speech Recognition': 'സ്പീച്ച് റെക്കഗ്നിഷൻ',
+    'Text to Speech': 'ടെക്സ്റ്റ് ടു സ്പീച്ച്',
+    'Supported Languages': 'പിന്തുണയുള്ള ഭാഷകൾ',
+    'Available': 'ലഭ്യമാണ്',
+    'Not Available': 'ലഭ്യമല്ല',
+    
+    // Error Messages
+    'Error': 'പിശക്',
+    'No file selected': 'ദയവായി ഒരു ചിത്രം അപ്‌ലോഡ് ചെയ്യുക അല്ലെങ്കിൽ ടെക്സ്റ്റ് നൽകുക',
+    'API Error': 'സേവനം താൽക്കാലികമായി ലഭ്യമല്ല. ദയവായി വീണ്ടും ശ്രമിക്കുക.',
+    'Voice not supported': 'ഈ ബ്രൗസറിൽ വോയ്സ് ഇൻപുട്ട് പിന്തുണയില്ല',
+    
+    // Header Feature Tags
+    'AI Disease Detection': 'AI രോഗ നിർണ്ണയം',
+    'Market Intelligence': 'മാർക്കറ്റ് ബുദ്ധി',
+    'Voice Support': 'വോയ്സ് പിന്തുണ',
+    'Multilingual': 'ബഹുഭാഷാ',
+    
+    // Footer
+    'Empowering Farmers with AI-Driven Insights and Guidance': 'AI-നിയന്ത്രിത അന്തർദൃഷ്ടികളും മാർഗദർശനവും ഉപയോഗിച്ച് കർഷകരെ ശാക്തീകരിക്കുന്നു',
+    'Crop Disease Detection': 'വിള രോഗ നിർണ്ണയം',
+    'Market Advisory': 'മാർക്കറ്റ് ഉപദേശം',
+    'Multilingual Support': 'ബഹുഭാഷാ പിന്തുണ',
+  },
+  
   te: {
     // Navigation
     'Disease Detection': 'వ్యాధి గుర్తింపు',
@@ -259,6 +344,7 @@ export const LanguageProvider = ({ children }) => {
         setAvailableLanguages([
           { code: 'en', name: 'English' },
           { code: 'hi', name: 'हिंदी (Hindi)' },
+          { code: 'ml', name: 'മലയാളം (Malayalam)' },
           { code: 'te', name: 'తెలుగు (Telugu)' }
         ]);
       });

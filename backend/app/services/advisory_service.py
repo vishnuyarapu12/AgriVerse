@@ -1,22 +1,29 @@
 """
-Advanced Advisory Service for comprehensive farming guidance
+Advanced Advisory Service for comprehensive farming guidance with Rice Disease Support
 """
 import os
-from typing import Dict, List
+import re
+from typing import Dict, List, Optional
 from . import gemini_client
 
 class AdvisoryService:
     def __init__(self):
+        # Rice disease treatments with multilingual support
         self.disease_treatments = {
-            "Tomato___Late_blight": {
-                "en": "Late blight is a serious fungal disease. Use copper-based fungicides, ensure good air circulation, and avoid overhead watering.",
-                "hi": "लेट ब्लाइट एक गंभीर फंगल बीमारी है। कॉपर आधारित फंगिसाइड का उपयोग करें, अच्छी हवा का संचार सुनिश्चित करें।",
-                "te": "లేట్ బ్లైట్ ఒక తీవ్రమైన ఫంగల్ వ్యాధి. రాగి ఆధారిత శిలీంద్రనాశకాలను ఉపయోగించండి, మంచి గాలి ప్రసరణను నిర్ధారించండి।"
+            "Bacterial leaf blight": {
+                "en": "Bacterial leaf blight is caused by Xanthomonas oryzae. Use copper-based fungicides, ensure proper drainage, and practice crop rotation.",
+                "hi": "बैक्टीरियल लीफ ब्लाइट Xanthomonas oryzae के कारण होता है। कॉपर आधारित फंगिसाइड का उपयोग करें, उचित जल निकासी सुनिश्चित करें।",
+                "ml": "ബാക്ടീരിയൽ ലീഫ് ബ്ലൈറ്റ് Xanthomonas oryzae എന്ന ബാക്ടീരിയയാൽ ഉണ്ടാകുന്നു. ചെമ്പ് അടിസ്ഥാന ഫംഗിസൈഡുകൾ ഉപയോഗിക്കുക, ഉചിതമായ ജലനിർഗ്ഗമനം ഉറപ്പാക്കുക।"
             },
-            "Tomato___Bacterial_spot": {
-                "en": "Bacterial spot affects leaves and fruits. Use copper sprays, practice crop rotation, and remove affected plant debris.",
-                "hi": "बैक्टीरियल स्पॉट पत्तियों और फलों को प्रभावित करता है। कॉपर स्प्रे का उपयोग करें, फसल चक्रीकरण का अभ्यास करें।",
-                "te": "బాక్టీరియల్ స్పాట్ ఆకులను మరియు పండ్లను ప్రభావితం చేస్తుంది. రాగి స్ప్రే ఉపయోగించండి, పంట మార్పిడిని అభ్యసించండి।"
+            "Brown spot": {
+                "en": "Brown spot is a fungal disease caused by Bipolaris oryzae. Improve nutrition, ensure good field hygiene, and apply fungicides.",
+                "hi": "ब्राउन स्पॉट Bipolaris oryzae के कारण होने वाली फंगल बीमारी है। पोषण में सुधार करें, अच्छी फील्ड स्वच्छता सुनिश्चित करें।",
+                "ml": "ബ്രൗൺ സ്പോട്ട് Bipolaris oryzae എന്ന ഫംഗസ് മൂലമുണ്ടാകുന്ന രോഗമാണ്. പോഷണം മെച്ചപ്പെടുത്തുക, നല്ല ഫീൽഡ് ശുചിത്വം ഉറപ്പാക്കുക।"
+            },
+            "Leaf smut": {
+                "en": "Leaf smut is caused by Ustilaginoidea virens fungus. Improve drainage, ensure proper spacing, and apply fungicide treatment.",
+                "hi": "लीफ स्मट Ustilaginoidea virens फंगस के कारण होता है। जल निकासी में सुधार करें, उचित दूरी सुनिश्चित करें।",
+                "ml": "ലീഫ് സ്മട്ട് Ustilaginoidea virens ഫംഗസ് മൂലമുണ്ടാകുന്നു. ജലനിർഗ്ഗമനം മെച്ചപ്പെടുത്തുക, ഉചിതമായ ഇടവേള ഉറപ്പാക്കുക।"
             }
         }
         
@@ -48,12 +55,12 @@ class AdvisoryService:
                 "मनरेगा: ग्रामीण रोजगार गारंटी",
                 "किसान क्रेडिट कार्ड: आसान कृषि ऋण"
             ],
-            "te": [
-                "పిఎం-కిసాన్: సంవత్సరానికి ₹6000 ప్రత్యక్ష ఆదాయ మద్దతు",
-                "మృత్తిక ఆరోగ్య కార్డ్ పథకం: ఉచిత మట్టి పరీక్ష",
-                "ప్రధానమంత్రి ఫసల్ బీమా యోజన: పంట బీమా", 
-                "మనరేగా: గ్రామీణ ఉపాధి హామీ",
-                "కిసాన్ క్రెడిట్ కార్డ్: సులభ వ్యవసాయ రుణాలు"
+            "ml": [
+                "പിഎം-കിസാൻ: വർഷത്തിൽ ₹6000 നേരിട്ടുള്ള വരുമാന പിന്തുണ",
+                "മണ്ണ് ആരോഗ്യ കാർഡ് പദ്ധതി: സൗജന്യ മണ്ണ് പരിശോധന",
+                "പ്രധാനമന്ത്രി ഫസൽ ബീമാ യോജന: കാർഷിക ബീമാ",
+                "മൻരേഗ: ഗ്രാമീണ തൊഴിൽ ഗ്യാരണ്ടി",
+                "കിസാൻ ക്രെഡിറ്റ് കാർഡ്: എളുപ്പമുള്ള കാർഷിക വായ്പകൾ"
             ]
         }
 
@@ -67,23 +74,25 @@ class AdvisoryService:
             else:
                 base_treatment = f"Disease detected: {disease_name}"
             
-            # Enhance with AI advisory
+            # Enhance with AI advisory - concise version
             prompt = f"""
-            As an agricultural expert, provide detailed treatment advice for {disease_name}.
-            Include:
-            1. Immediate treatment steps
-            2. Prevention methods  
-            3. Organic alternatives
-            4. Expected recovery time
-            5. When to consult an agricultural expert
+            As an agricultural expert, provide concise treatment advice for {disease_name} in {self._get_language_name(language)}.
             
-            Respond in {self._get_language_name(language)} language.
-            Keep the response practical and farmer-friendly.
+            Keep response under 200 words and include only:
+            1. Disease causes (2-3 points)
+            2. Immediate remedies (3-4 steps)
+            3. Prevention tips (2-3 points)
+            
+            Make it practical and suitable for 1-2 minute audio reading.
             """
             
             ai_advisory = gemini_client.ask_gemini(prompt)
             
-            return f"{base_treatment}\n\n**Detailed Advisory:**\n{ai_advisory}"
+            # Clean the response - remove all formatting symbols
+            clean_advisory = self._clean_text(ai_advisory)
+            clean_base = self._clean_text(base_treatment)
+            
+            return f"{clean_base}\n\n{clean_advisory}"
             
         except Exception as e:
             return f"Error generating advisory: {str(e)}"
@@ -94,19 +103,18 @@ class AdvisoryService:
             crop = crop_name.split("___")[0] if "___" in crop_name else crop_name
             
             prompt = f"""
-            The {crop} crop appears healthy. As an agricultural expert, provide advice on:
-            1. Maintaining crop health
-            2. Optimal harvesting time
-            3. Post-harvest handling
-            4. Market timing suggestions
-            5. Preventive measures for common diseases
+            The {crop} crop appears healthy. As an agricultural expert, provide concise advice in {self._get_language_name(language)}.
             
-            Respond in {self._get_language_name(language)} language.
-            Keep advice practical and actionable for farmers.
+            Keep response under 150 words and include only:
+            1. Health maintenance tips (2-3 points)
+            2. Preventive measures (2-3 points)
+            3. Harvest timing (1-2 points)
+            
+            Make it suitable for 1-2 minute audio reading.
             """
             
             ai_advisory = gemini_client.ask_gemini(prompt)
-            return ai_advisory
+            return self._clean_text(ai_advisory)
             
         except Exception as e:
             return f"Error generating healthy crop advice: {str(e)}"
@@ -130,38 +138,23 @@ class AdvisoryService:
             schemes = self.government_schemes.get(language, self.government_schemes["en"])
             schemes_info = "\n".join([f"- {scheme}" for scheme in schemes[:3]])
             
-            # Create comprehensive prompt for AI
+            # Create concise prompt for AI
             prompt = f"""
-            As an expert agricultural advisor, help a farmer with the following details:
+            As an agricultural expert, provide concise advice in {self._get_language_name(language)} for:
             
-            Crop: {crop_name}
-            Location: {location}  
-            Soil Type: {soil_type}
-            Farmer's Question: {query}
+            Crop: {crop_name} | Location: {location} | Soil: {soil_type}
+            Question: {query}
             
-            Provide comprehensive advice covering:
+            Keep response under 250 words and include only:
+            1. Direct answer to question (2-3 points)
+            2. Practical steps (3-4 actions)
+            3. Important precautions (2-3 points)
             
-            1. **Specific Solution** to the farmer's question
-            2. **Crop Management** recommendations for current season
-            3. **Soil-specific** advice for {soil_type} soil
-            4. **Weather considerations** for {location}
-            5. **Pest and Disease Prevention** strategies
-            6. **Fertilizer and Nutrition** recommendations
-            7. **Water Management** best practices
-            8. **Harvesting and Post-harvest** guidance
-            
-            {market_info}
-            
-            **Relevant Government Schemes:**
-            {schemes_info}
-            
-            Respond in {self._get_language_name(language)} language.
-            Make the advice practical, actionable, and suitable for small-scale farmers.
-            Use simple language and provide step-by-step instructions where possible.
+            Make it suitable for 1-2 minute audio reading. Be practical and actionable.
             """
             
             ai_advisory = gemini_client.ask_gemini(prompt)
-            return ai_advisory
+            return self._clean_text(ai_advisory)
             
         except Exception as e:
             return f"Error generating comprehensive advisory: {str(e)}"
@@ -224,11 +217,35 @@ class AdvisoryService:
         lang_map = {
             "en": "English",
             "hi": "Hindi (हिंदी)", 
+            "ml": "Malayalam (മലയാളം)",
             "te": "Telugu (తెలుగు)",
             "ta": "Tamil (தமிழ்)",
             "kn": "Kannada (ಕನ್ನಡ)"
         }
         return lang_map.get(code, "English")
+    
+    def _clean_text(self, text: str) -> str:
+        """Remove all formatting symbols and clean text for voice output"""
+        if not text:
+            return ""
+        
+        # Remove markdown formatting
+        text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Remove **bold**
+        text = re.sub(r'\*(.*?)\*', r'\1', text)      # Remove *italic*
+        text = re.sub(r'`(.*?)`', r'\1', text)        # Remove `code`
+        text = re.sub(r'#{1,6}\s*', '', text)         # Remove headers
+        text = re.sub(r'^\s*[-*+]\s*', '', text, flags=re.MULTILINE)  # Remove bullet points
+        text = re.sub(r'^\s*\d+\.\s*', '', text, flags=re.MULTILINE)  # Remove numbered lists
+        
+        # Remove other symbols
+        text = re.sub(r'[#*_`~]', '', text)           # Remove markdown symbols
+        text = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', text)  # Remove links, keep text
+        
+        # Clean up whitespace
+        text = re.sub(r'\n\s*\n', '\n', text)         # Remove multiple newlines
+        text = re.sub(r'^\s+|\s+$', '', text, flags=re.MULTILINE)  # Trim lines
+        
+        return text.strip()
 
 # Global instance
 advisory_service = AdvisoryService()

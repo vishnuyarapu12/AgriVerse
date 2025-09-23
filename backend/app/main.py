@@ -35,6 +35,10 @@ class TTSRequest(BaseModel):
     text: str
     language: Optional[str] = "en"
 
+class TranslateRequest(BaseModel):
+    text: str
+    target_language: str
+
 # In-memory storage for demo (use database in production)
 query_history = []
 feedback_data = []
@@ -58,9 +62,9 @@ def health_check():
     return {"status": "healthy", "timestamp": datetime.datetime.now().isoformat()}
 
 @app.post("/detect-disease/")
-async def detect_disease(file: UploadFile = File(...), language: str = Form("en")):
+async def detect_disease(file: UploadFile = File(...), language: str = Form("en"), location: str = Form(None)):
     """
-    Detect crop disease from uploaded image and provide advisory
+    Detect rice disease from uploaded image and provide comprehensive advisory
     """
     try:
         # Validate file type
@@ -70,14 +74,27 @@ async def detect_disease(file: UploadFile = File(...), language: str = Form("en"
         # Read file into BytesIO to allow multiple reads
         contents = await file.read()
         buf = io.BytesIO(contents)
+        
+        # Validate image file
+        if not disease_detector.validate_image_file(buf):
+            raise HTTPException(status_code=400, detail="Invalid image file or file too large (>6MB)")
+        
+        # Reset buffer position
+        buf.seek(0)
+        
+        # Get disease prediction
         result = disease_detector.predict(buf)
         
         # Generate advisory based on disease prediction
-        if "healthy" not in result["prediction"].lower():
-            advisory_query = f"The crop has been diagnosed with {result['prediction']}. Provide treatment recommendations, prevention methods, and care instructions."
-            advisory = advisory_service.get_disease_advisory(result["prediction"], language)
+        if result["is_reliable"]:
+            # High confidence prediction - provide detailed advisory
+            if "healthy" not in result["prediction"].lower():
+                advisory = advisory_service.get_disease_advisory(result["prediction"], language)
+            else:
+                advisory = advisory_service.get_healthy_crop_advice(result["prediction"], language)
         else:
-            advisory = advisory_service.get_healthy_crop_advice(result["prediction"], language)
+            # Low confidence prediction - provide cautious advisory
+            advisory = f"⚠️ {result['warning']}\n\n" + advisory_service.get_disease_advisory(result["prediction"], language)
         
         # Store query in history
         query_id = f"disease_{len(query_history)}"
@@ -86,9 +103,12 @@ async def detect_disease(file: UploadFile = File(...), language: str = Form("en"
             "type": "disease_detection",
             "filename": file.filename,
             "prediction": result["prediction"],
+            "prediction_ml": result.get("prediction_ml", result["prediction"]),
             "confidence": result["confidence"],
+            "is_reliable": result["is_reliable"],
             "advisory": advisory,
             "language": language,
+            "location": location,
             "timestamp": datetime.datetime.now().isoformat()
         }
         query_history.append(query_record)
@@ -97,9 +117,15 @@ async def detect_disease(file: UploadFile = File(...), language: str = Form("en"
             "query_id": query_id,
             "filename": file.filename,
             "prediction": result["prediction"],
+            "prediction_ml": result.get("prediction_ml", result["prediction"]),
             "confidence": result["confidence"],
+            "is_reliable": result["is_reliable"],
+            "confidence_threshold": result["confidence_threshold"],
+            "warning": result.get("warning"),
+            "top_predictions": result.get("top_predictions", []),
             "advisory": advisory,
-            "language": language
+            "language": language,
+            "location": location
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -220,8 +246,79 @@ def get_supported_languages():
         "languages": [
             {"code": "en", "name": "English"},
             {"code": "hi", "name": "हिंदी (Hindi)"},
+            {"code": "ml", "name": "മലയാളം (Malayalam)"},
             {"code": "te", "name": "తెలుగు (Telugu)"},
             {"code": "ta", "name": "தமிழ் (Tamil)"},
             {"code": "kn", "name": "ಕನ್ನಡ (Kannada)"}
         ]
     }
+
+@app.post("/ask-gemini/")
+async def ask_gemini_direct(request: dict):
+    """
+    Direct Gemini API endpoint for testing
+    """
+    try:
+        query = request.get("query", "")
+        language = request.get("language", "en")
+        
+        if not query:
+            raise HTTPException(status_code=400, detail="Query is required")
+        
+        response = gemini_client.ask_gemini(query, language)
+        
+        return {
+            "query": query,
+            "response": response,
+            "language": language
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/tts/")
+async def text_to_speech_enhanced(request: dict):
+    """
+    Enhanced text-to-speech with language support
+    """
+    try:
+        text = request.get("text", "")
+        language = request.get("language", "en")
+        
+        if not text:
+            raise HTTPException(status_code=400, detail="Text is required")
+        
+        # Map language codes to TTS language codes
+        tts_language_map = {
+            "en": "en",
+            "hi": "hi", 
+            "ml": "ml",  # Malayalam support
+            "te": "te",
+            "ta": "ta",
+            "kn": "kn"
+        }
+        
+        tts_lang = tts_language_map.get(language, "en")
+        audio_buffer = voice_service.text_to_speech(text, tts_lang)
+        
+        return StreamingResponse(
+            io.BytesIO(audio_buffer),
+            media_type="audio/wav",
+            headers={
+                "Content-Disposition": f"attachment; filename=response_{language}.wav",
+                "Content-Length": str(len(audio_buffer))
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/translate/")
+async def translate_text_endpoint(req: TranslateRequest):
+    try:
+        text = req.text or ""
+        if not text:
+            raise HTTPException(status_code=400, detail="Text is required")
+        translated = gemini_client.translate_text(text, req.target_language)
+        return {"text": translated, "language": req.target_language}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
