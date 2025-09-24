@@ -15,10 +15,11 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "rice_disea
 LABEL_MAP_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "label_map.json")
 
 # Confidence threshold for reliable predictions
-CONFIDENCE_THRESHOLD = 0.6
+CONFIDENCE_THRESHOLD = 0.7
 
 _model = None
 _labels = None
+TARGET_DISEASE = "Leaf smut"
 
 def _load():
     """Load the trained rice disease model and label mappings"""
@@ -72,13 +73,18 @@ def predict(file_stream) -> Dict[str, Any]:
         
         idx = int(np.argmax(preds))
         confidence = float(preds[idx])
-        
+
         # Get label information
         label_info = _labels.get(str(idx), {"en": f"Unknown_Class_{idx}", "ml": f"അജ്ഞാത_ക്ലാസ്_{idx}"})
-        
+
+        predicted_label_en = label_info.get("en", f"Unknown_Class_{idx}")
+
         # Determine if prediction is reliable
         is_reliable = confidence >= CONFIDENCE_THRESHOLD
-        
+
+        # Restrict to single-disease classification (Leaf smut)
+        leaf_smut_detected = is_reliable and (predicted_label_en.lower() == TARGET_DISEASE.lower())
+
         # Get top 3 predictions for additional context
         top_indices = np.argsort(preds)[::-1][:3]
         top_predictions = []
@@ -89,18 +95,33 @@ def predict(file_stream) -> Dict[str, Any]:
                 "confidence": float(preds[i])
             })
         
-        result = {
-            "prediction": label_info.get("en", f"Unknown_Class_{idx}"),
-            "prediction_ml": label_info.get("ml", f"അജ്ഞാത_ക്ലാസ്_{idx}"),
-            "confidence": round(confidence, 4),
-            "label_id": str(idx),
-            "is_reliable": is_reliable,
-            "confidence_threshold": CONFIDENCE_THRESHOLD,
-            "top_predictions": top_predictions,
-            "warning": None if is_reliable else f"Low confidence prediction ({confidence:.2f}). Please upload a clearer image or consult an agricultural expert."
-        }
+        if leaf_smut_detected:
+            result = {
+                "prediction": TARGET_DISEASE,
+                "prediction_ml": label_info.get("ml", TARGET_DISEASE),
+                "confidence": round(confidence, 4),
+                "label_id": str(idx),
+                "is_reliable": True,
+                "leaf_smut_detected": True,
+                "confidence_threshold": CONFIDENCE_THRESHOLD,
+                "top_predictions": top_predictions,
+                "warning": None
+            }
+        else:
+            # Not confidently Leaf smut → treat as negative
+            result = {
+                "prediction": predicted_label_en,
+                "prediction_ml": label_info.get("ml", predicted_label_en),
+                "confidence": round(confidence, 4),
+                "label_id": str(idx),
+                "is_reliable": False,
+                "leaf_smut_detected": False,
+                "confidence_threshold": CONFIDENCE_THRESHOLD,
+                "top_predictions": top_predictions,
+                "warning": f"Not confidently {TARGET_DISEASE} (top: {predicted_label_en}, {confidence:.2f}). Please try a clearer, close-up leaf image."
+            }
         
-        logger.info(f"Prediction: {result['prediction']} (confidence: {confidence:.3f}, reliable: {is_reliable})")
+        logger.info(f"Prediction: {result['prediction']} (confidence: {confidence:.3f}, leaf_smut={result.get('leaf_smut_detected')})")
         return result
         
     except Exception as e:
@@ -124,12 +145,6 @@ def get_disease_info(disease_name: str) -> Dict[str, Any]:
             "causes": ["Bipolaris oryzae fungus", "Poor nutrition", "High humidity"],
             "prevention": ["Balanced fertilization", "Good field hygiene", "Proper spacing"],
             "treatment": ["Fungicide application", "Improve nutrition", "Remove debris"]
-        },
-        "Leaf smut": {
-            "symptoms": ["Black spots on leaves", "Powdery appearance", "Leaf distortion"],
-            "causes": ["Ustilaginoidea virens fungus", "High moisture", "Poor air circulation"],
-            "prevention": ["Good drainage", "Proper spacing", "Field hygiene"],
-            "treatment": ["Fungicide treatment", "Remove affected plants", "Improve ventilation"]
         }
     }
     

@@ -70,11 +70,12 @@ def ask_gemini_with_context(query: str, context: Dict[str, Any], language: str =
         return f"Gemini API error: {str(e)}"
 
 def _get_language_context(language: str) -> str:
-    """Get language-specific context for better responses (strict single-language, plain text)."""
+    """Get language-specific context for better responses (strict single-language, plain text, simple terms)."""
     contexts = {
-        "en": "You are an expert agricultural advisor. Respond ONLY in English. Use plain text only. Do not include any other language, symbols, markdown, bullets, or numbering.",
-        "hi": "आप एक विशेषज्ञ कृषि सलाहकार हैं। केवल हिंदी में उत्तर दें। सादा पाठ लिखें। किसी भी अन्य भाषा, प्रतीक, मार्कडाउन, बुलेट या नंबरिंग का उपयोग न करें।",
-        "ml": "നിങ്ങൾ വിദഗ്ധ കാർഷിക ഉപദേഷ്ടാവാണ്. മലയാളത്തിൽ മാത്രം മറുപടി നൽകുക. സാധാരണ ടെക്സ്റ്റ് മാത്രം ഉപയോഗിക്കുക. മറ്റ് ഭാഷകൾ, ചിഹ്നങ്ങൾ, മാർക്ക്ഡൗൺ, ബുള്ളറ്റുകൾ, നമ്പറിംഗ് ഒന്നും ഉപയോഗിക്കരുത്."
+        "en": "You are an expert agricultural advisor. Respond ONLY in English using simple, easy-to-understand language. Use plain text only. Explain diseases and remedies in simple terms that farmers can easily understand. Do not use complex technical terms.",
+        "hi": "आप एक विशेषज्ञ कृषि सलाहकार हैं। केवल हिंदी में सरल, आसान भाषा में उत्तर दें। रोगों और उपचारों को सरल शब्दों में समझाएं जो किसान आसानी से समझ सकें। जटिल तकनीकी शब्दों का उपयोग न करें।",
+        "ml": "നിങ്ങൾ വിദഗ്ധ കാർഷിക ഉപദേഷ്ടാവാണ്. മലയാളത്തിൽ മാത്രം ലളിതവും എളുപ്പത്തിൽ മനസ്സിലാക്കാവുന്ന ഭാഷയിൽ മറുപടി നൽകുക. രോഗങ്ങളും പരിഹാരങ്ങളും കർഷകർക്ക് എളുപ്പത്തിൽ മനസ്സിലാക്കാവുന്ന ലളിത പദങ്ങളിൽ വിവരിക്കുക. സങ്കീർണ്ണമായ സാങ്കേതിക പദങ്ങൾ ഉപയോഗിക്കരുത്.",
+        "te": "మీరు నిపుణ వ్యవసాయ సలహాదారు. తెలుగులో మాత్రమే సరళమైన, సులభంగా అర్థమయ్యే భాషలో సమాధానం ఇవ్వండి. వ్యాధులను మరియు పరిహారాలను రైతులు సులభంగా అర్థం చేసుకోగల సరళ పదాలలో వివరించండి. సంక్లిష్టమైన సాంకేతిక పదాలను వాడకండి."
     }
     return contexts.get(language, contexts["en"])
 
@@ -95,9 +96,9 @@ def _build_context_prompt(query: str, context: Dict[str, Any], language: str) ->
 
 Farmer's Query: {query}
 
-Provide concise, practical advice (under 200 words), plain text only (no bullets/markdown),
-direct and actionable, suitable for 1-2 minute audio reading. Respond ONLY in the target language.
-Do not include any English or other languages."""
+Provide simple, practical advice (under 100 words), plain text only (no bullets/markdown),
+direct and actionable, suitable for 1 minute audio reading. Use simple language that farmers can easily understand.
+Respond ONLY in the target language. Do not include any English or other languages."""
 
 
 def translate_text(text: str, target_language: str) -> str:

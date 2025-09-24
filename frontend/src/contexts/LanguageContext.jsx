@@ -301,6 +301,15 @@ const translations = {
     'Enter additional questions': 'ఎరువులు, వాతావరణం, మార్కెట్ ధరల గురించి అడగండి...',
     'Describe crop problem': 'మీ పంటలలో మీరు గమనించిన వాటిని వివరించండి...',
     
+    // Soil types
+    'Alluvial': 'అలూవియల్',
+    'Black': 'నల్ల (రేగుర్)',
+    'Red': 'ఎరుపు',
+    'Laterite': 'లాటరైట్',
+    'Sandy': 'ఇసుక',
+    'Clay': 'మట్టి',
+    'Loamy': 'లోమీ',
+    
     // Response Card
     'AI Response': 'AI సలహా సమాధానం',
     'Prediction': 'వ్యాధి అంచనా',
@@ -310,6 +319,25 @@ const translations = {
     'Feedback': 'ఇది సహాయకరమైందా?',
     'Thumbs Up': '👍 సహాయకరం',
     'Thumbs Down': '👎 సహాయకరం కాదు',
+    
+    // History
+    'Recent Queries': 'ఇటీవలి ప్రశ్నలు',
+    'No History': 'ప్రశ్న చరిత్ర అందుబాటులో లేదు',
+    'Clear History': 'చరిత్రను తుడిచివేయండి',
+    
+    // Voice
+    'Voice Capabilities': 'వాయిస్ ఇన్‌పుట్/అవుట్‌పుట్ సామర్థ్యాలు',
+    'Speech Recognition': 'స్పీచ్ రికగ్నిషన్',
+    'Text to Speech': 'టెక్స్ట్ టు స్పీచ్',
+    'Supported Languages': 'మద్దతు ఉన్న భాషలు',
+    'Available': 'అందుబాటులో ఉంది',
+    'Not Available': 'అందుబాటులో లేదు',
+    
+    // Error Messages
+    'Error': 'లోపం',
+    'No file selected': 'దయచేసి ఒక చిత్రాన్ని అప్‌లోడ్ చేయండి లేదా టెక్స్ట్‌ను నమోదు చేయండి',
+    'API Error': 'సేవ తాత్కాలికంగా అందుబాటులో లేదు. దయచేసి మళ్లీ ప్రయత్నించండి.',
+    'Voice not supported': 'ఈ బ్రౌజర్‌లో వాయిస్ ఇన్‌పుట్ మద్దతు లేదు',
     
     // Header Feature Tags
     'AI Disease Detection': 'AI వ్యాధి గుర్తింపు',

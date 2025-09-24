@@ -247,9 +247,7 @@ def get_supported_languages():
             {"code": "en", "name": "English"},
             {"code": "hi", "name": "हिंदी (Hindi)"},
             {"code": "ml", "name": "മലയാളം (Malayalam)"},
-            {"code": "te", "name": "తెలుగు (Telugu)"},
-            {"code": "ta", "name": "தமிழ் (Tamil)"},
-            {"code": "kn", "name": "ಕನ್ನಡ (Kannada)"}
+            {"code": "te", "name": "తెలుగు (Telugu)"}
         ]
     }
 

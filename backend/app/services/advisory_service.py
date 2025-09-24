@@ -10,20 +10,10 @@ class AdvisoryService:
     def __init__(self):
         # Rice disease treatments with multilingual support
         self.disease_treatments = {
-            "Bacterial leaf blight": {
-                "en": "Bacterial leaf blight is caused by Xanthomonas oryzae. Use copper-based fungicides, ensure proper drainage, and practice crop rotation.",
-                "hi": "बैक्टीरियल लीफ ब्लाइट Xanthomonas oryzae के कारण होता है। कॉपर आधारित फंगिसाइड का उपयोग करें, उचित जल निकासी सुनिश्चित करें।",
-                "ml": "ബാക്ടീരിയൽ ലീഫ് ബ്ലൈറ്റ് Xanthomonas oryzae എന്ന ബാക്ടീരിയയാൽ ഉണ്ടാകുന്നു. ചെമ്പ് അടിസ്ഥാന ഫംഗിസൈഡുകൾ ഉപയോഗിക്കുക, ഉചിതമായ ജലനിർഗ്ഗമനം ഉറപ്പാക്കുക।"
-            },
-            "Brown spot": {
-                "en": "Brown spot is a fungal disease caused by Bipolaris oryzae. Improve nutrition, ensure good field hygiene, and apply fungicides.",
-                "hi": "ब्राउन स्पॉट Bipolaris oryzae के कारण होने वाली फंगल बीमारी है। पोषण में सुधार करें, अच्छी फील्ड स्वच्छता सुनिश्चित करें।",
-                "ml": "ബ്രൗൺ സ്പോട്ട് Bipolaris oryzae എന്ന ഫംഗസ് മൂലമുണ്ടാകുന്ന രോഗമാണ്. പോഷണം മെച്ചപ്പെടുത്തുക, നല്ല ഫീൽഡ് ശുചിത്വം ഉറപ്പാക്കുക।"
-            },
             "Leaf smut": {
                 "en": "Leaf smut is caused by Ustilaginoidea virens fungus. Improve drainage, ensure proper spacing, and apply fungicide treatment.",
-                "hi": "लीफ स्मट Ustilaginoidea virens फंगस के कारण होता है। जल निकासी में सुधार करें, उचित दूरी सुनिश्चित करें।",
-                "ml": "ലീഫ് സ്മട്ട് Ustilaginoidea virens ഫംഗസ് മൂലമുണ്ടാകുന്നു. ജലനിർഗ്ഗമനം മെച്ചപ്പെടുത്തുക, ഉചിതമായ ഇടവേള ഉറപ്പാക്കുക।"
+                "hi": "लीफ स्मट Ustilaginoidea virens फंगस के कारण होता है। जल निकासी में सुधार करें, उचित दूरी सुनिश्चित करें और फफूंदनाशक दवा लगाएं।",
+                "ml": "ലീഫ് സ്മട്ട് Ustilaginoidea virens ഫംഗസ് മൂലമാണ്. ജലനിർഗ്ഗമനം മെച്ചപ്പെടുത്തുക, ശരിയായ ഇടവേള പാലിക്കുക, അനുയോജ്യമായ ഫംഗിസൈഡുകൾ പ്രയോഗിക്കുക."
             }
         }
         
@@ -64,7 +54,41 @@ class AdvisoryService:
             ]
         }
 
-    def get_disease_advisory(self, disease_name: str, language: str = "en") -> str:
+        # Local brand suggestions (examples) for South Indian states by disease
+        # Keys will be (state_code, disease_name)
+        self.local_brands = {
+            ("KL", "Leaf smut"): [
+                {"brand": "Tilt 250 EC", "molecule": "Propiconazole 25% EC", "dose": "1 ml/L"},
+                {"brand": "Folicur 25 EC", "molecule": "Tebuconazole 25% EC", "dose": "1 ml/L"}
+            ],
+            ("TN", "Leaf smut"): [
+                {"brand": "Score 250 EC", "molecule": "Difenoconazole 25% EC", "dose": "0.5 ml/L"}
+            ],
+            ("AP", "Leaf smut"): [
+                {"brand": "Tilt 250 EC", "molecule": "Propiconazole 25% EC", "dose": "1 ml/L"}
+            ],
+            ("TS", "Leaf smut"): [
+                {"brand": "Folicur 25 EC", "molecule": "Tebuconazole 25% EC", "dose": "1 ml/L"}
+            ]
+        }
+
+    def _state_from_location(self, location: Optional[str]) -> Optional[str]:
+        if not location:
+            return None
+        loc = (location or "").strip().lower()
+        if any(s in loc for s in ["kerala", "kl"]):
+            return "KL"
+        if any(s in loc for s in ["tamil", "tn"]):
+            return "TN"
+        if any(s in loc for s in ["karnataka", "ka"]):
+            return "KA"
+        if any(s in loc for s in ["andhra", "ap"]):
+            return "AP"
+        if any(s in loc for s in ["telangana", "ts"]):
+            return "TS"
+        return None
+
+    def get_disease_advisory(self, disease_name: str, language: str = "en", location: Optional[str] = None) -> str:
         """Get disease-specific treatment advisory"""
         try:
             # Check if we have predefined treatment
@@ -74,25 +98,35 @@ class AdvisoryService:
             else:
                 base_treatment = f"Disease detected: {disease_name}"
             
-            # Enhance with AI advisory - concise version
+            # Enhance with AI advisory - concise (~100 words) and product-focused
             prompt = f"""
-            As an agricultural expert, provide concise treatment advice for {disease_name} in {self._get_language_name(language)}.
-            
-            Keep response under 200 words and include only:
-            1. Disease causes (2-3 points)
-            2. Immediate remedies (3-4 steps)
-            3. Prevention tips (2-3 points)
-            
-            Make it practical and suitable for 1-2 minute audio reading.
+            As an agricultural expert, give a short, farmer-friendly advisory for {disease_name} in about 100 words.
+            Include:
+            - Cause in simple words (1 line)
+            - What to do now: 2–3 clear steps (spray/field hygiene/irrigation)
+            - Recommend 2–3 effective products by active ingredient with typical dose (e.g., Propiconazole 25% EC – 1 ml/L; Copper Oxychloride 50% WP – 2.5 g/L)
+            - One prevention tip (1 line)
+            Keep language simple and direct. No bullets or numbering, plain text only.
             """
             
-            ai_advisory = gemini_client.ask_gemini(prompt)
-            
-            # Clean the response - remove all formatting symbols
-            clean_advisory = self._clean_text(ai_advisory)
-            clean_base = self._clean_text(base_treatment)
-            
-            return f"{clean_base}\n\n{clean_advisory}"
+            ai_advisory = gemini_client.ask_gemini(prompt, language)
+
+            # Local brands by state
+            state = self._state_from_location(location)
+            brand_lines = []
+            if state:
+                options = self.local_brands.get((state, disease_name), [])
+                if options:
+                    brand_lines.append("Local products:")
+                    for b in options[:5]:
+                        brand_lines.append(f"{b['brand']} - {b['molecule']} ({b['dose']})")
+            brand_text = ("\n" + "\n".join(brand_lines)) if brand_lines else ""
+
+            combined = f"{base_treatment}\n\n{ai_advisory}{brand_text}"
+
+            # Ensure strict target language
+            translated = gemini_client.translate_text(self._clean_text(combined), language)
+            return self._clean_text(translated)
             
         except Exception as e:
             return f"Error generating advisory: {str(e)}"
@@ -103,18 +137,19 @@ class AdvisoryService:
             crop = crop_name.split("___")[0] if "___" in crop_name else crop_name
             
             prompt = f"""
-            The {crop} crop appears healthy. As an agricultural expert, provide concise advice in {self._get_language_name(language)}.
+            The {crop} crop appears healthy. As an agricultural expert, provide simple advice.
             
-            Keep response under 150 words and include only:
-            1. Health maintenance tips (2-3 points)
-            2. Preventive measures (2-3 points)
-            3. Harvest timing (1-2 points)
+            Keep response under 80 words and include only:
+            1. How to keep it healthy (2 simple tips)
+            2. What to watch for (1-2 warning signs)
+            3. When to harvest (1 simple guideline)
             
-            Make it suitable for 1-2 minute audio reading.
+            Use simple language that farmers can easily understand.
             """
             
-            ai_advisory = gemini_client.ask_gemini(prompt)
-            return self._clean_text(ai_advisory)
+            ai_advisory = gemini_client.ask_gemini(prompt, language)
+            translated = gemini_client.translate_text(self._clean_text(ai_advisory), language)
+            return self._clean_text(translated)
             
         except Exception as e:
             return f"Error generating healthy crop advice: {str(e)}"
@@ -138,23 +173,24 @@ class AdvisoryService:
             schemes = self.government_schemes.get(language, self.government_schemes["en"])
             schemes_info = "\n".join([f"- {scheme}" for scheme in schemes[:3]])
             
-            # Create concise prompt for AI
+            # Create simple prompt for AI
             prompt = f"""
-            As an agricultural expert, provide concise advice in {self._get_language_name(language)} for:
+            As an agricultural expert, provide simple advice for:
             
             Crop: {crop_name} | Location: {location} | Soil: {soil_type}
             Question: {query}
             
-            Keep response under 250 words and include only:
-            1. Direct answer to question (2-3 points)
-            2. Practical steps (3-4 actions)
-            3. Important precautions (2-3 points)
+            Keep response under 100 words and include only:
+            1. Direct answer to question (1-2 simple points)
+            2. What to do (2-3 easy steps)
+            3. Important things to remember (1-2 simple tips)
             
-            Make it suitable for 1-2 minute audio reading. Be practical and actionable.
+            Use simple language that farmers can easily understand. Be practical and actionable.
             """
             
-            ai_advisory = gemini_client.ask_gemini(prompt)
-            return self._clean_text(ai_advisory)
+            ai_advisory = gemini_client.ask_gemini(prompt, language)
+            translated = gemini_client.translate_text(self._clean_text(ai_advisory), language)
+            return self._clean_text(translated)
             
         except Exception as e:
             return f"Error generating comprehensive advisory: {str(e)}"
@@ -163,25 +199,22 @@ class AdvisoryService:
         """Get market price and selling advice"""
         try:
             prompt = f"""
-            As a market analyst and agricultural expert, provide market advisory for:
+            As a market analyst and agricultural expert, provide simple market advice for:
             
             Crop: {crop_name}
             Location: {location}
             
-            Include:
-            1. Current market prices and trends
-            2. Best time to sell
-            3. Quality parameters that affect pricing
-            4. Nearby market recommendations
-            5. Transportation and storage tips
-            6. Price negotiation strategies
+            Keep response under 100 words and include only:
+            1. Current price range (simple numbers)
+            2. Best time to sell (1-2 simple tips)
+            3. How to get better price (2-3 easy steps)
             
-            Respond in {self._get_language_name(language)} language.
-            Focus on maximizing farmer income.
+            Use simple language that farmers can easily understand. Focus on maximizing farmer income.
             """
             
-            ai_advisory = gemini_client.ask_gemini(prompt)
-            return ai_advisory
+            ai_advisory = gemini_client.ask_gemini(prompt, language)
+            translated = gemini_client.translate_text(self._clean_text(ai_advisory), language)
+            return self._clean_text(translated)
             
         except Exception as e:
             return f"Error generating market advisory: {str(e)}"
@@ -190,23 +223,20 @@ class AdvisoryService:
         """Get weather-based farming advice"""
         try:
             prompt = f"""
-            As a weather and agriculture expert, provide weather-based advice for:
+            As a weather and agriculture expert, provide simple weather advice for:
             
             Location: {location}
             Crop: {crop_name}
             
-            Include:
-            1. Current weather impact on the crop
-            2. Upcoming weather precautions
-            3. Irrigation recommendations
-            4. Protection measures for extreme weather
-            5. Optimal timing for farming activities
+            Keep response under 100 words and include only:
+            1. How weather affects the crop (1-2 simple points)
+            2. What to do now (2-3 easy steps)
+            3. How to protect from bad weather (1-2 simple tips)
             
-            Respond in {self._get_language_name(language)} language.
-            Provide practical weather-based farming tips.
+            Use simple language that farmers can easily understand. Provide practical weather-based farming tips.
             """
             
-            ai_advisory = gemini_client.ask_gemini(prompt)
+            ai_advisory = gemini_client.ask_gemini(prompt, language)
             return ai_advisory
             
         except Exception as e:
