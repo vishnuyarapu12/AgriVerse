@@ -1,8 +1,13 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useLanguage } from "../contexts/LanguageContext";
+import { useVoiceInput } from "../hooks/useVoiceInput";
+import VoiceInputButton from "./VoiceInputButton";
 
 export default function QueryForm({ setResponse }) {
   const [query, setQuery] = useState("");
+  const { currentLanguage } = useLanguage();
+  const { isListening, startVoiceInput } = useVoiceInput(currentLanguage);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,6 +23,11 @@ export default function QueryForm({ setResponse }) {
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Ask a farming question..."
         className="flex-grow border p-2 rounded"
+      />
+      <VoiceInputButton
+        isListening={isListening}
+        onVoiceClick={() => startVoiceInput((text) => setQuery(text))}
+        size="md"
       />
       <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">
         Ask

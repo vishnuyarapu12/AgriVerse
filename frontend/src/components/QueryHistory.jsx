@@ -31,11 +31,11 @@ const QueryHistory = () => {
   };
 
   const clearHistory = async () => {
-    if (window.confirm('Are you sure you want to clear all history?')) {
+    if (window.confirm(t('Clear History'))) {
       // Note: This would require a backend endpoint to clear history
       // For now, we'll just clear the local state
       setHistory([]);
-      toast.success('History cleared');
+      toast.success(t('Clear History'));
     }
   };
 
@@ -69,7 +69,7 @@ const QueryHistory = () => {
       <div className="flex items-center justify-center py-12">
         <div className="flex items-center space-x-3">
           <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-gray-600">Loading history...</span>
+          <span className="text-gray-600">{t('Loading weather')}</span>
         </div>
       </div>
     );
@@ -89,7 +89,7 @@ const QueryHistory = () => {
             <span className="text-3xl">📊</span>
             <div>
               <h2 className="text-2xl font-bold">{t('Recent Queries')}</h2>
-              <p className="text-purple-100 text-sm">View your recent disease detections and advisory queries</p>
+              <p className="text-purple-100 text-sm">{t('View query history')}</p>
             </div>
           </div>
           {history.length > 0 && (
@@ -113,7 +113,7 @@ const QueryHistory = () => {
               {t('No History')}
             </h3>
             <p className="text-gray-600">
-              Your query history will appear here once you start using the disease detection or advisory features.
+              {t('History empty message')}
             </p>
           </div>
         ) : (
@@ -149,12 +149,12 @@ const QueryHistory = () => {
                           <>
                             {item.filename && (
                               <div className="text-sm text-gray-600">
-                                <span className="font-medium">Image:</span> {item.filename}
+                                <span className="font-medium">{t('Image')}:</span> {item.filename}
                               </div>
                             )}
                             {item.prediction && (
                               <div className="text-sm">
-                                <span className="font-medium text-gray-700">Prediction:</span>{' '}
+                                <span className="font-medium text-gray-700">{t('Prediction')}:</span>{' '}
                                 <span className="text-green-600 font-medium">
                                   {item.prediction.replace(/___/g, ' - ')}
                                 </span>
@@ -171,13 +171,13 @@ const QueryHistory = () => {
                         {item.type === 'advisory' && (
                           <div className="text-sm space-y-1">
                             <div>
-                              <span className="font-medium text-gray-700">Crop:</span> {item.crop_name}
+                              <span className="font-medium text-gray-700">{t('Crop Name')}:</span> {item.crop_name}
                             </div>
                             <div>
-                              <span className="font-medium text-gray-700">Location:</span> {item.location}
+                              <span className="font-medium text-gray-700">{t('Location')}:</span> {item.location}
                             </div>
                             <div>
-                              <span className="font-medium text-gray-700">Query:</span> {truncateText(item.query)}
+                              <span className="font-medium text-gray-700">{t('Enter Query')}:</span> {truncateText(item.query)}
                             </div>
                           </div>
                         )}
@@ -196,7 +196,7 @@ const QueryHistory = () => {
                                 onClick={() => toggleExpand(item.id)}
                                 className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium"
                               >
-                                {expandedItems.has(item.id) ? 'Show Less' : 'Read More'}
+                                {expandedItems.has(item.id) ? t('Show Less') : t('Read More')}
                               </button>
                             )}
                           </div>

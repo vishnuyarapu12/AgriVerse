@@ -24,6 +24,7 @@ class ProductionBackend:
         self.backend_dir = Path(__file__).parent
         self.app_dir = self.backend_dir / "app"
         self.model_dir = self.app_dir / "models"
+        self.root_models_dir = self.backend_dir.parent / "app" / "models"
         self.env_file = self.backend_dir / ".env"
         
     def check_python_version(self) -> bool:
@@ -69,26 +70,19 @@ class ProductionBackend:
             return False
     
     def check_model(self) -> bool:
-        """Check if model files exist"""
-        model_file = self.model_dir / "rice_disease_model.h5"
-        label_file = self.model_dir / "label_map.json"
-        
-        if not self.model_dir.exists():
-            logger.error(f"Model directory not found: {self.model_dir}")
-            return False
-        
-        if not model_file.exists():
-            logger.error(f"Model file not found: {model_file}")
-            logger.error("Please train the model first: python train_model.py")
-            return False
-        
-        if not label_file.exists():
-            logger.error(f"Label mapping not found: {label_file}")
-            logger.error("Please train the model first: python train_model.py")
-            return False
-        
-        logger.info("Model files validated")
-        return True
+        """Check if any discoverable disease model exists under app/models."""
+        try:
+            sys.path.insert(0, str(self.app_dir))
+            from services.disease_detector import build_model_paths
+            paths = build_model_paths()
+            if paths:
+                logger.info(f"Model files validated: {paths[0]}")
+                return True
+        except Exception as e:
+            logger.error(f"Model discovery failed: {e}")
+        logger.error("No trained model + label map found in app/models (project root) or backend/app/models")
+        logger.error("Train with: python backend/train_unified.py --task archive --data_dir archive/dataset")
+        return False
     
     def test_model_loading(self) -> bool:
         """Test if the model can be loaded successfully"""

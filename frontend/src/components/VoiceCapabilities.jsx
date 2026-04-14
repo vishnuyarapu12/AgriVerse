@@ -2,6 +2,8 @@ import React, { useState, useRef } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { useVoiceInput } from '../hooks/useVoiceInput';
+import VoiceInputButton from './VoiceInputButton';
 
 const VoiceCapabilities = ({ capabilities }) => {
   const [isTestingVoice, setIsTestingVoice] = useState(false);
@@ -32,7 +34,7 @@ const VoiceCapabilities = ({ capabilities }) => {
     recognition.interimResults = false;
     
     setIsRecording(true);
-    toast.success('Listening... Please speak now');
+    toast.success(t('Listening... Please speak now'));
     
     recognition.start();
     
@@ -40,12 +42,12 @@ const VoiceCapabilities = ({ capabilities }) => {
       const transcript = event.results[0][0].transcript;
       setTestText(transcript);
       setIsRecording(false);
-      toast.success('Voice captured successfully!');
+      toast.success(t('Voice captured successfully!'));
     };
     
     recognition.onerror = (event) => {
       setIsRecording(false);
-      toast.error('Voice recognition error. Please try again.');
+      toast.error(t('Voice recognition error. Please try again.'));
     };
     
     recognition.onend = () => {
@@ -55,12 +57,12 @@ const VoiceCapabilities = ({ capabilities }) => {
 
   const testVoiceOutput = async () => {
     if (!testText.trim()) {
-      toast.error('Please enter some text to test voice output');
+      toast.error(t('Please enter some text to test voice output'));
       return;
     }
 
     setIsTestingVoice(true);
-    const toastId = toast.loading('Generating test audio...');
+    const toastId = toast.loading(t('Generating test audio...'));
 
     try {
       const ttsRes = await fetch("http://127.0.0.1:8000/text-to-speech/", {
@@ -77,12 +79,12 @@ const VoiceCapabilities = ({ capabilities }) => {
         const audioUrl = URL.createObjectURL(audioBlob);
         audioRef.current.src = audioUrl;
         audioRef.current.play();
-        toast.success('Playing test audio', { id: toastId });
+        toast.success(t('Playing audio response'), { id: toastId });
       } else {
         throw new Error('TTS failed');
       }
     } catch (error) {
-      toast.error('Audio generation failed', { id: toastId });
+      toast.error(t('Audio generation failed'), { id: toastId });
     } finally {
       setIsTestingVoice(false);
     }
@@ -130,17 +132,17 @@ const VoiceCapabilities = ({ capabilities }) => {
               {getStatusBadge('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)}
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              Convert your voice into text for queries and commands.
+              {t('Convert your voice into text for queries and commands.')}
             </p>
             <div className="space-y-2">
               <div className="text-sm">
-                <span className="font-medium text-gray-700">Browser Support:</span>{' '}
+                <span className="font-medium text-gray-700">{t('Browser Support:')}</span>{' '}
                 <span className={`${
                   'webkitSpeechRecognition' in window || 'SpeechRecognition' in window 
                     ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) 
-                    ? 'Supported' : 'Not Supported'}
+                    ? t('Available') : t('Not Available')}
                 </span>
               </div>
             </div>
@@ -155,12 +157,12 @@ const VoiceCapabilities = ({ capabilities }) => {
               {getStatusBadge(true)}
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              Listen to AI responses in your preferred language.
+              {t('Listen to AI responses in your preferred language.')}
             </p>
             <div className="space-y-2">
               <div className="text-sm">
-                <span className="font-medium text-gray-700">Service:</span>{' '}
-                <span className="text-green-600">Google TTS</span>
+                <span className="font-medium text-gray-700">{t('Service:')}</span>{' '}
+                <span className="text-green-600">{t('Google TTS')}</span>
               </div>
             </div>
           </div>
@@ -187,7 +189,7 @@ const VoiceCapabilities = ({ capabilities }) => {
                 </div>
                 {currentLanguage === lang.code && (
                   <div className="text-xs text-indigo-600 mt-1">
-                    Currently Active
+                    {t('Currently Active')}
                   </div>
                 )}
               </div>
@@ -198,13 +200,13 @@ const VoiceCapabilities = ({ capabilities }) => {
         {/* Voice Testing Section */}
         <div className="border-t border-gray-200 pt-8">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Test Voice Features
+            {t('Test Voice Features')}
           </h3>
           
           <div className="space-y-6">
             {/* Voice Input Test */}
             <div>
-              <h4 className="font-medium text-gray-700 mb-2">Voice Input Test</h4>
+              <h4 className="font-medium text-gray-700 mb-2">{t('Voice Input Test')}</h4>
               <div className="flex items-center space-x-3">
                 <motion.button
                   onClick={testVoiceInput}
@@ -218,11 +220,11 @@ const VoiceCapabilities = ({ capabilities }) => {
                   whileTap={!isRecording ? { scale: 0.95 } : {}}
                 >
                   <span>{isRecording ? '🎙️' : '🎤'}</span>
-                  <span>{isRecording ? 'Listening...' : 'Test Voice Input'}</span>
+                  <span>{isRecording ? t('Listening...') : t('Test Voice Input')}</span>
                 </motion.button>
                 {testText && (
                   <span className="text-sm text-gray-600 italic">
-                    Captured: "{testText}"
+                    {t('Captured')}: "{testText}"
                   </span>
                 )}
               </div>
@@ -230,7 +232,7 @@ const VoiceCapabilities = ({ capabilities }) => {
 
             {/* Voice Output Test */}
             <div>
-              <h4 className="font-medium text-gray-700 mb-2">Voice Output Test</h4>
+              <h4 className="font-medium text-gray-700 mb-2">{t('Voice Output Test')}</h4>
               <div className="space-y-3">
                 <textarea
                   value={testText}
@@ -252,12 +254,12 @@ const VoiceCapabilities = ({ capabilities }) => {
                   {isTestingVoice ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Generating...</span>
+                      <span>{t('Analyzing...')}</span>
                     </>
                   ) : (
                     <>
                       <span>🔊</span>
-                      <span>Test Voice Output</span>
+                      <span>{t('Test Voice Output')}</span>
                     </>
                   )}
                 </motion.button>
@@ -271,13 +273,13 @@ const VoiceCapabilities = ({ capabilities }) => {
 
         {/* Tips and Information */}
         <div className="mt-8 bg-blue-50 rounded-lg p-4">
-          <h4 className="font-semibold text-blue-800 mb-2">💡 Tips for Better Voice Experience</h4>
+          <h4 className="font-semibold text-blue-800 mb-2">💡 {t('Tips for Better Voice Experience')}</h4>
           <ul className="text-sm text-blue-700 space-y-1">
-            <li>• Speak clearly and at a normal pace</li>
-            <li>• Ensure you're in a quiet environment for better recognition</li>
-            <li>• Allow microphone access when prompted by your browser</li>
-            <li>• Voice input works best in Chrome, Edge, and Safari browsers</li>
-            <li>• Audio output supports all major languages for farming guidance</li>
+            <li>• {t('Speak clearly and at a normal pace')}</li>
+            <li>• {t('Ensure you are in a quiet environment for better recognition')}</li>
+            <li>• {t('Allow microphone access when prompted by your browser')}</li>
+            <li>• {t('Voice input works best in Chrome, Edge, and Safari browsers')}</li>
+            <li>• {t('Audio output supports all major languages for farming guidance')}</li>
           </ul>
         </div>
       </div>

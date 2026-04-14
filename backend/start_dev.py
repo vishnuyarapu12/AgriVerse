@@ -21,17 +21,24 @@ def start_dev_server():
     
     backend_dir = Path(__file__).parent
     app_dir = backend_dir / "app"
+    root_models = backend_dir.parent / "app" / "models"
+    legacy_models = app_dir / "models"
     
     # Quick checks
     if not app_dir.exists():
         logger.error("app directory not found")
         return False
     
-    # Check if model exists (optional for development)
-    model_file = app_dir / "models" / "rice_disease_model.h5"
-    if not model_file.exists():
+    # Check if any disease model exists (optional for development)
+    try:
+        sys.path.insert(0, str(backend_dir))
+        from app.services.disease_detector import build_model_paths
+        has_model = len(build_model_paths()) > 0
+    except Exception:
+        has_model = False
+    if not has_model:
         logger.warning("Model not found - some features may not work")
-        logger.info("Train model with: python train_model.py")
+        logger.info("Train with: python backend/train_unified.py --task cotton --data_dir datasets/cotton_leaf_diseases")
     
     # Change to backend directory
     os.chdir(backend_dir)

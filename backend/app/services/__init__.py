@@ -21,4 +21,9 @@ try:
 except ImportError as e:
     print(f"Warning: Could not import advisory_service: {e}")
 
-__all__ = ['gemini_client', 'disease_detector', 'voice_service', 'advisory_service']
+try:
+    from . import translation_service
+except ImportError as e:
+    print(f"Warning: Could not import translation_service: {e}")
+
+__all__ = ['gemini_client', 'disease_detector', 'voice_service', 'advisory_service', 'translation_service']

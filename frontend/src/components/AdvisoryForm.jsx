@@ -1,19 +1,30 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import ResponseCard from "./ResponseCard";
 import { useLanguage } from "../contexts/LanguageContext";
+import useTranslation from "../hooks/useTranslation";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
+import { useVoiceInput } from "../hooks/useVoiceInput";
+import VoiceInputButton from "./VoiceInputButton";
 
 export default function AdvisoryForm() {
   const [cropName, setCropName] = useState("");
   const [location, setLocation] = useState("");
   const [soilType, setSoilType] = useState("");
+  const [season, setSeason] = useState("");
   const [query, setQuery] = useState("");
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
+  const [audioGenerating, setAudioGenerating] = useState(false);
+  const [audioReady, setAudioReady] = useState(false);
   const audioRef = useRef();
+  const audioToastIdRef = useRef(null);
   const { currentLanguage, t } = useLanguage();
+  const { getAllSeasons } = useTranslation();
+  
+  const { isListening: isListeningCrop, startVoiceInput: startCropVoice } = useVoiceInput(currentLanguage);
+  const { isListening: isListeningLocation, startVoiceInput: startLocationVoice } = useVoiceInput(currentLanguage);
+  const { isListening: isListeningQuery, startVoiceInput: startQueryVoice } = useVoiceInput(currentLanguage);
 
   const soilTypes = [
     { value: "alluvial", label: "Alluvial" },
@@ -25,65 +36,72 @@ export default function AdvisoryForm() {
     { value: "loamy", label: "Loamy" }
   ];
 
-  // Voice input for query
-  const handleVoiceInput = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      toast.error(t('Voice not supported'));
-      return;
-    }
+  const seasons = [
+    { value: "kharif", label: "Kharif (Monsoon)" },
+    { value: "rabi", label: "Rabi (Winter)" },
+    { value: "summer", label: "Summer" },
+    { value: "spring", label: "Spring" }
+  ];
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
+  // The voice input hooks are now used directly in the JSX via the VoiceInputButton component
+  // No need for a separate handleVoiceInput function
+
+  // Auto-generate audio when response is received
+  useEffect(() => {
+    if (!response?.text || audioGenerating || audioReady) return;
     
-    const langMap = {
-      'en': 'en-US',
-      'hi': 'hi-IN',
-      'te': 'te-IN',
-      'ta': 'ta-IN',
-      'kn': 'kn-IN'
+    setAudioGenerating(true);
+    audioToastIdRef.current = toast.loading(t('Generating audio in background...'));
+    
+    const generateAudio = async () => {
+      try {
+        const ttsRes = await fetch("http://127.0.0.1:8000/text-to-speech/", {
+          method: "POST",
+          body: JSON.stringify({ 
+            text: response.text, 
+            language: currentLanguage 
+          }),
+          headers: { "Content-Type": "application/json" },
+        });
+        
+        if (ttsRes.ok) {
+          const audioBlob = await ttsRes.blob();
+          const audioUrl = URL.createObjectURL(audioBlob);
+          audioRef.current.src = audioUrl;
+          setAudioReady(true);
+          toast.success(t('Audio ready! Click play button to listen'), { id: audioToastIdRef.current });
+        } else {
+          throw new Error('TTS failed');
+        }
+      } catch (error) {
+        console.error('Auto audio generation failed:', error);
+        toast.error(t('Audio generation failed'), { id: audioToastIdRef.current });
+      } finally {
+        setAudioGenerating(false);
+      }
     };
     
-    recognition.lang = langMap[currentLanguage] || 'en-US';
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    
-    setIsListening(true);
-    toast.success('Listening for your farming question...');
-    
-    recognition.start();
-    
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setQuery(transcript);
-      setIsListening(false);
-      toast.success('Voice captured successfully!');
-    };
-    
-    recognition.onerror = (event) => {
-      setIsListening(false);
-      toast.error('Voice recognition error. Please try again.');
-    };
-    
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-  };
+    generateAudio();
+  }, [response, currentLanguage, audioGenerating, audioReady, t]);
 
   const handleSubmit = async () => {
-    if (!cropName.trim() || !location.trim() || !soilType || !query.trim()) {
-      toast.error('Please fill in all fields');
+    if (!cropName.trim() || !location.trim() || !soilType) {
+      toast.error(t('Please fill in crop name, location, and soil type'));
       return;
     }
 
     setLoading(true);
-    const toastId = toast.loading('Getting agricultural advisory...');
+    setAudioReady(false);
+    setAudioGenerating(false);
+    const toastId = toast.loading(t('Getting agricultural advisory...'));
 
     try {
       const requestData = {
         crop_name: cropName,
         location: location,
         soil_type: soilType,
-        query: query,
+        season: season || "kharif",
+        query: query || "General farming advice",
         language: currentLanguage
       };
 
@@ -94,7 +112,7 @@ export default function AdvisoryForm() {
       });
       
       if (!res.ok) {
-        throw new Error('API request failed');
+        throw new Error(t('API Error'));
       }
       
       const data = await res.json();
@@ -104,7 +122,7 @@ export default function AdvisoryForm() {
       }
       
       setResponse(data);
-      toast.success('Advisory generated successfully!', { id: toastId });
+      toast.success(t('Advisory generated successfully!'), { id: toastId });
 
     } catch (error) {
       console.error('Advisory error:', error);
@@ -114,34 +132,19 @@ export default function AdvisoryForm() {
     }
   };
 
-  // Generate voice output
-  const handlePlayAudio = async () => {
-    if (!response?.advisory) return;
-    
-    const audioToastId = toast.loading('Generating audio advisory...');
-    
-    try {
-      const ttsRes = await fetch("http://127.0.0.1:8000/text-to-speech/", {
-        method: "POST",
-        body: JSON.stringify({ 
-          text: response.advisory, 
-          language: currentLanguage 
-        }),
-        headers: { "Content-Type": "application/json" },
-      });
-      
-      if (ttsRes.ok) {
-        const audioBlob = await ttsRes.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        audioRef.current.src = audioUrl;
-        audioRef.current.play();
-        toast.success('Playing audio advisory', { id: audioToastId });
+  // Play audio (auto-generated in background)
+  const handlePlayAudio = () => {
+    if (!audioRef.current?.src) {
+      if (audioGenerating) {
+        toast.loading(t('Audio is being generated...'));
       } else {
-        throw new Error('TTS failed');
+        toast.error(t('Audio not ready yet'));
       }
-    } catch (error) {
-      toast.error('Audio generation failed', { id: audioToastId });
+      return;
     }
+    
+    audioRef.current.play();
+    toast.success(t('Playing audio advisory'));
   };
 
   return (
@@ -157,7 +160,7 @@ export default function AdvisoryForm() {
           <span className="text-3xl">🌾</span>
           <div>
             <h2 className="text-2xl font-bold">{t('Crop Advisory')}</h2>
-            <p className="text-blue-100 text-sm">Get comprehensive farming guidance and market insights</p>
+            <p className="text-blue-100 text-sm">{t('Crop Advisory subtitle')}</p>
           </div>
         </div>
       </div>
@@ -171,13 +174,20 @@ export default function AdvisoryForm() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t('Crop Name')} *
               </label>
-              <input
-                type="text"
-                value={cropName}
-                onChange={(e) => setCropName(e.target.value)}
-                placeholder={t('Enter crop name')}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={cropName}
+                  onChange={(e) => setCropName(e.target.value)}
+                  placeholder={t('Enter crop name')}
+                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                />
+                <VoiceInputButton
+                  isListening={isListeningCrop}
+                  onVoiceClick={() => startCropVoice((text) => setCropName(text))}
+                  size="md"
+                />
+              </div>
             </div>
 
             {/* Location */}
@@ -185,13 +195,20 @@ export default function AdvisoryForm() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t('Location')} *
               </label>
-              <input
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder={t('Enter location')}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder={t('Enter location')}
+                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                />
+                <VoiceInputButton
+                  isListening={isListeningLocation}
+                  onVoiceClick={() => startLocationVoice((text) => setLocation(text))}
+                  size="md"
+                />
+              </div>
             </div>
 
             {/* Soil Type */}
@@ -212,6 +229,26 @@ export default function AdvisoryForm() {
                 ))}
               </select>
             </div>
+
+            {/* Season */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('Farming Season')} (Optional)
+              </label>
+              <select
+                value={season}
+                onChange={(e) => setSeason(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              >
+                <option value="">{t('Select current season')}</option>
+                {seasons.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {t(s.label)}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">{t('Choose your current farming season for better recommendations')}</p>
+            </div>
           </div>
 
           {/* Right Column */}
@@ -221,8 +258,8 @@ export default function AdvisoryForm() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t('Additional Query')} *
               </label>
-              <div className="flex-1 flex flex-col">
-                <div className="flex space-x-3 mb-3">
+              <div className="flex-1 flex flex-col gap-2">
+                <div className="flex gap-2">
                   <textarea
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -230,23 +267,15 @@ export default function AdvisoryForm() {
                     className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200"
                     rows={6}
                   />
+                  <div className="flex flex-col gap-2">
+                    <VoiceInputButton
+                      isListening={isListeningQuery}
+                      onVoiceClick={() => startQueryVoice((text) => setQuery(text))}
+                      size="md"
+                      showLabel={false}
+                    />
+                  </div>
                 </div>
-                <motion.button
-                  onClick={handleVoiceInput}
-                  disabled={isListening || loading}
-                  className={`self-start px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 ${
-                    isListening 
-                      ? 'bg-red-500 text-white animate-pulse'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <span>{isListening ? '🎙️' : '🎤'}</span>
-                  <span className="text-sm">
-                    {isListening ? 'Listening...' : t('Voice Input')}
-                  </span>
-                </motion.button>
               </div>
             </div>
           </div>
@@ -255,19 +284,19 @@ export default function AdvisoryForm() {
         {/* Submit Button */}
         <motion.button
           onClick={handleSubmit}
-          disabled={loading || !cropName.trim() || !location.trim() || !soilType || !query.trim()}
+          disabled={loading || !cropName.trim() || !location.trim() || !soilType}
           className={`w-full mt-8 py-4 rounded-lg font-semibold text-lg transition-all duration-200 ${
-            loading || !cropName.trim() || !location.trim() || !soilType || !query.trim()
+            loading || !cropName.trim() || !location.trim() || !soilType
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
               : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl'
           }`}
-          whileHover={!loading && cropName.trim() && location.trim() && soilType && query.trim() ? { scale: 1.02 } : {}}
-          whileTap={!loading && cropName.trim() && location.trim() && soilType && query.trim() ? { scale: 0.98 } : {}}
+          whileHover={!loading && cropName.trim() && location.trim() && soilType ? { scale: 1.02 } : {}}
+          whileTap={!loading && cropName.trim() && location.trim() && soilType ? { scale: 0.98 } : {}}
         >
           {loading ? (
             <div className="flex items-center justify-center space-x-2">
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Getting Advisory...</span>
+              <span>{t('Getting Advisory...')}</span>
             </div>
           ) : (
             <div className="flex items-center justify-center space-x-2">
@@ -283,15 +312,55 @@ export default function AdvisoryForm() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="mt-8"
+            className="mt-8 space-y-6"
           >
-            <ResponseCard 
-              response={response} 
-              audioRef={audioRef}
-              onPlayAudio={handlePlayAudio}
-              language={currentLanguage}
-              type="advisory"
-            />
+            {/* Advisory Response */}
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border-2 border-blue-300">
+              <h3 className="text-lg font-bold text-blue-900 mb-3">🌾 {t('Farming Advisory')}</h3>
+              <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">{response.text}</p>
+            </div>
+
+            {/* Farming Options Section */}
+            {response.farming_options && response.farming_options.options && response.farming_options.options.length > 0 && (
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6 rounded-xl">
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <span>🌱</span> {t('Recommended Crop Options')}
+                  </h3>
+                  <p className="text-green-100 text-sm mt-2">
+                    {t('Based on')} {response.farming_options.season}, {response.farming_options.soil_type} {t('soil')}, {t('and')} {response.farming_options.location}
+                  </p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  {response.farming_options.options.map((option, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="bg-white border-2 border-green-200 rounded-xl p-5 hover:shadow-lg transition-shadow"
+                    >
+                      <h4 className="text-lg font-bold text-green-800 mb-3">{option.crop}</h4>
+                      <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{option.details}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Audio Playback for Advisory */}
+            {response.advisory && (
+              <motion.button
+                onClick={handlePlayAudio}
+                className="w-full py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center justify-center gap-2 transition-colors"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span>🔊</span>
+                <span>{t('Play Audio Advisory')}</span>
+              </motion.button>
+            )}
           </motion.div>
         )}
 

@@ -1,0 +1,160 @@
+# ============================================
+# PYTHON - Virtual Environments & Packages
+# ============================================
+venv/
+env/
+ENV/
+.venv
+.env
+.env.local
+.env.*.local
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ============================================
+# NODE - Frontend Dependencies
+# ============================================
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# ============================================
+# IDE & EDITOR
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ============================================
+# OS
+# ============================================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ============================================
+# ENVIRONMENT & SECRETS
+# ============================================
+.env
+.env.local
+.env.*.local
+.env.production.local
+secrets.json
+config/secrets.*
+credentials.json
+api_keys.txt
+
+# ============================================
+# LOGS
+# ============================================
+*.log
+logs/
+*.log.*
+
+# ============================================
+# DATABASE & TEMPORARY FILES
+# ============================================
+*.db
+*.sqlite
+*.sqlite3
+*.tmp
+tmp/
+temp/
+
+# ============================================
+# AUDIO FILES (Temp TTS Output)
+# ============================================
+*.mp3
+*.wav
+*.m4a
+/tmp/
+/temp/
+
+# ============================================
+# MODEL FILES (Large - train separately)
+# ============================================
+*.h5
+*.pkl
+*.joblib
+*.pt
+*.pth
+*/models/
+/models/
+/model_cache/
+backend/app/models/*.h5
+backend/app/models/*.pkl
+backend/app/models/*.json
+
+# ============================================
+# DATASET ARCHIVES
+# ============================================
+archive/dataset/
+archive/
+datasets/
+data/
+
+# ============================================
+# TEST FILES & TEMPORARY OUTPUTS
+# ============================================
+test_*.py
+*_test.py
+test_outputs/
+debug/
+*.json.bak
+
+# ============================================
+# BUILD ARTIFACTS
+# ============================================
+dist/
+build/
+*.egg-info/
+
+# ============================================
+# IDE CACHE
+# ============================================
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ============================================
+# Keep these FILES (DO NOT IGNORE)
+# ============================================
+# !requirements.txt
+# !backend/requirements.txt
+# !frontend/package.json
+# !.env.example

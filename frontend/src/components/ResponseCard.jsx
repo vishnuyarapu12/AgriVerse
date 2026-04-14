@@ -31,16 +31,40 @@ export default function ResponseCard({ response, audioRef, onPlayAudio, language
     }
   };
 
-  const getConfidenceColor = (confidence) => {
-    if (confidence >= 0.8) return "text-green-600";
-    if (confidence >= 0.6) return "text-yellow-600";
-    return "text-red-600";
+  const sanitizeText = (text) => {
+    if (!text) return "";
+    return text.replace(/\*/g, "").trim();
   };
 
-  const getConfidenceLabel = (confidence) => {
-    if (confidence >= 0.8) return "High";
-    if (confidence >= 0.6) return "Medium";
-    return "Low";
+  const renderAdvisoryParagraphs = (text) => {
+    if (!text) return null;
+
+    const lines = sanitizeText(text)
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    return lines.map((line, idx) => {
+      if (/^\d+[.)]/.test(line) || /^[A-Z][).]/.test(line)) {
+        return (
+          <h5 key={idx} className="font-semibold mt-3 text-gray-800">
+            {line}
+          </h5>
+        );
+      }
+      if (/^-\s+/.test(line) || /^•\s+/.test(line) || /^[*\-\u2022]\s+/.test(line)) {
+        return (
+          <li key={idx} className="ml-5 list-disc text-gray-700">
+            {line.replace(/^[-*\u2022]\s+/, "")}
+          </li>
+        );
+      }
+      return (
+        <p key={idx} className="text-gray-700 leading-relaxed">
+          {line}
+        </p>
+      );
+    });
   };
 
   const truncateText = (text, maxLength = 200) => {
@@ -83,40 +107,13 @@ export default function ResponseCard({ response, audioRef, onPlayAudio, language
       <div className="p-6">
         {/* Disease Detection Specific Info */}
         {type === 'disease' && response.prediction && (
-          <div className="mb-6 grid md:grid-cols-2 gap-4">
+          <div className="mb-6">
             <div className="bg-gray-50 p-4 rounded-lg">
               <h4 className="font-semibold text-gray-800 mb-2">{t('Prediction')}</h4>
               <p className="text-lg font-medium text-green-700">
-                {response.prediction.replace(/___/g, ' - ')}
+                {sanitizeText(response.prediction).replace(/___/g, ' - ')}
               </p>
             </div>
-            {response.confidence && (
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-gray-800 mb-2">{t('Confidence')}</h4>
-                <div className="flex items-center space-x-3">
-                  <div className={`text-lg font-bold ${getConfidenceColor(response.confidence)}`}>
-                    {(response.confidence * 100).toFixed(1)}%
-                  </div>
-                  <span className={`text-sm px-2 py-1 rounded-full ${
-                    response.confidence >= 0.8 ? 'bg-green-100 text-green-800' :
-                    response.confidence >= 0.6 ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {getConfidenceLabel(response.confidence)}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                  <div 
-                    className={`h-2 rounded-full transition-all duration-500 ${
-                      response.confidence >= 0.8 ? 'bg-green-500' :
-                      response.confidence >= 0.6 ? 'bg-yellow-500' :
-                      'bg-red-500'
-                    }`}
-                    style={{ width: `${response.confidence * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -129,16 +126,16 @@ export default function ResponseCard({ response, audioRef, onPlayAudio, language
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
               {showFullResponse ? 
-                response.advisory || response.answer :
-                truncateText(response.advisory || response.answer || 'No advisory available', 300)
+                renderAdvisoryParagraphs(response.text || response.advisory || response.answer) :
+                renderAdvisoryParagraphs(truncateText(response.text || response.advisory || response.answer || 'No advisory available', 300))
               }
             </div>
-            {(response.advisory || response.answer) && (response.advisory || response.answer).length > 300 && (
+            {(response.text || response.advisory || response.answer) && (response.text || response.advisory || response.answer).length > 300 && (
               <button
                 onClick={() => setShowFullResponse(!showFullResponse)}
                 className="mt-3 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
               >
-                {showFullResponse ? 'Show Less' : 'Read More'}
+                {showFullResponse ? t('Show Less') : t('Read More')}
               </button>
             )}
           </div>
@@ -186,7 +183,7 @@ export default function ResponseCard({ response, audioRef, onPlayAudio, language
             ) : (
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <span>{feedback === 'positive' ? '👍' : '👎'}</span>
-                <span>Thank you for your feedback!</span>
+                <span>{t('Thank you for your feedback!')}</span>
               </div>
             )}
           </div>

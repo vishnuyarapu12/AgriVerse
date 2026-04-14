@@ -6,6 +6,8 @@ import os
 import io
 import wave
 import tempfile
+import time
+import traceback
 from typing import Optional
 import logging
 
@@ -29,7 +31,10 @@ except ImportError:
 
 try:
     from gtts import gTTS
-    GTTS_AVAILABLE = True
+    # Allow disabling gTTS via environment variable (useful if Google TTS is blocked)
+    GTTS_AVAILABLE = os.environ.get('DISABLE_GTTS', '').lower() != 'true'
+    if not GTTS_AVAILABLE:
+        logger.info("gTTS disabled via DISABLE_GTTS environment variable. Using pyttsx3 fallback.")
 except ImportError:
     GTTS_AVAILABLE = False
     logger.warning("gtts not installed. Google TTS will be disabled.")
@@ -138,93 +143,238 @@ class VoiceService:
             logger.error(f"Speech to text error: {e}")
             return f"Error processing speech: {str(e)}"
 
-    def text_to_speech(self, text: str, language: str = "en") -> bytes:
+    def text_to_speech(self, text: str, language: str = "en") -> dict:
         """
-        Convert text to speech audio
-        Returns audio data as bytes
+        Convert text to speech audio and save to file
+        Returns dict with audio_path and audio_data
+        Tries multiple engines with intelligent fallback
+        Language parameter is now properly used for TTS synthesis
         """
+        if not text or not text.strip():
+            logger.warning("Empty text provided for TTS")
+            return {"audio_data": self._generate_silence(duration=0.5), "audio_path": None, "language": language}
+        
         try:
-            # Try Google TTS first (supports more languages)
+            logger.info(f"text_to_speech requested for language: {language}, text length: {len(text)}")
+            logger.info(f"Available engines - gTTS: {GTTS_AVAILABLE}, pyttsx3: {PYTTSX3_AVAILABLE}")
+            
+            # Validate and normalize language
+            if language not in self.language_mappings:
+                logger.warning(f"Language {language} not in mappings, using English")
+                language = "en"
+            
+            # First, try Google TTS if available (better quality for longer text)
             if GTTS_AVAILABLE and language in self.language_mappings:
-                return self._gtts_synthesis(text, language)
+                logger.info(f"Attempting gTTS synthesis for {language} (gtts code: {self.language_mappings[language]['gtts']})")
+                try:
+                    audio_data, audio_path = self._gtts_synthesis(text, language)
+                    if audio_data and len(audio_data) > 500:  # Substantial audio
+                        logger.info(f"Successfully using gTTS audio ({len(audio_data)} bytes) for {language}, saved to {audio_path}")
+                        return {"audio_data": audio_data, "audio_path": audio_path, "language": language}
+                    else:
+                        logger.warning(f"gTTS produced insufficient audio ({len(audio_data) if audio_data else 0} bytes), trying pyttsx3")
+                except Exception as e:
+                    logger.error(f"gTTS synthesis failed with exception: {e}")
             
-            # Fallback to pyttsx3 (offline, but limited language support)
-            elif PYTTSX3_AVAILABLE and self.tts_engine:
-                return self._pyttsx3_synthesis(text, language)
+            # Second, fallback to pyttsx3 if available
+            if PYTTSX3_AVAILABLE and self.tts_engine:
+                logger.info(f"Attempting pyttsx3 synthesis for {language}")
+                try:
+                    audio_data, audio_path = self._pyttsx3_synthesis(text, language)
+                    if audio_data and len(audio_data) > 500:  # Substantial audio
+                        logger.info(f"Successfully using pyttsx3 audio ({len(audio_data)} bytes) for {language}, saved to {audio_path}")
+                        return {"audio_data": audio_data, "audio_path": audio_path, "language": language}
+                    else:
+                        logger.warning(f"pyttsx3 produced insufficient audio ({len(audio_data) if audio_data else 0} bytes)")
+                except Exception as e:
+                    logger.error(f"pyttsx3 synthesis failed with exception: {e}")
             
-            else:
-                # Return empty audio if no TTS available
-                logger.warning("No TTS engines available")
-                return self._generate_silence()
+            # Last resort: generate silence with appropriate duration
+            logger.warning("Both TTS engines failed, returning silence")
+            word_count = len(text.split())
+            estimated_duration = max(1.0, (word_count / 150.0) * 60.0)
+            return {"audio_data": self._generate_silence(duration=estimated_duration), "audio_path": None, "language": language}
                 
         except Exception as e:
-            logger.error(f"Text to speech error: {e}")
-            return self._generate_silence()
+            logger.error(f"Text to speech error: {type(e).__name__}: {e}")
+            logger.debug(f"Full traceback: {traceback.format_exc()}")
+            word_count = len(text.split())
+            estimated_duration = max(1.0, (word_count / 150.0) * 60.0)
+            return {"audio_data": self._generate_silence(duration=estimated_duration), "audio_path": None, "language": language}
 
-    def _gtts_synthesis(self, text: str, language: str) -> bytes:
-        """Generate speech using Google TTS"""
+    def _gtts_synthesis(self, text: str, language: str) -> tuple:
+        """Generate speech using Google TTS with improved error handling and retry logic
+        Returns (audio_data: bytes, audio_path: str) tuple
+        """
         try:
             lang_code = self.language_mappings[language]['gtts']
             
-            # Create gTTS object
-            tts = gTTS(text=text, lang=lang_code, slow=False)
+            # Estimate audio duration based on text length
+            word_count = len(text.split())
+            estimated_duration = max(1.0, (word_count / 150.0) * 60.0)
             
-            # Save to BytesIO buffer
-            audio_buffer = io.BytesIO()
-            tts.write_to_fp(audio_buffer)
-            audio_buffer.seek(0)
+            logger.info(f"Starting gTTS synthesis for language {language} ({lang_code}) with {word_count} words")
             
-            return audio_buffer.getvalue()
+            # Retry logic for gTTS - try up to 2 times (reduced from 3 for faster fallback)
+            max_retries = 2
+            last_error = None
+            
+            for attempt in range(max_retries):
+                try:
+                    logger.debug(f"gTTS attempt {attempt + 1}/{max_retries}")
+                    # Increased timeout and added connect_timeout
+                    tts = gTTS(text=text, lang=lang_code, slow=False, timeout=5)
+                    logger.debug(f"gTTS object created successfully on attempt {attempt + 1}")
+                    
+                    # Save to persistent file
+                    import uuid
+                    audio_filename = f"tts_output_{language}_{uuid.uuid4().hex[:8]}.mp3"
+                    audio_path = os.path.join(tempfile.gettempdir(), audio_filename)
+                    
+                    tts.save(audio_path)
+                    logger.info(f"gTTS audio saved to {audio_path} on attempt {attempt + 1}")
+                    
+                    # Read audio data
+                    with open(audio_path, 'rb') as f:
+                        audio_data = f.read()
+                    
+                    logger.info(f"gTTS synthesis successful on attempt {attempt + 1}, audio size: {len(audio_data)} bytes")
+                    
+                    # Verify we got substantial audio data
+                    if audio_data and len(audio_data) > 500:
+                        logger.info(f"Returning gTTS audio - path: {audio_path}, size: {len(audio_data)}")
+                        return (audio_data, audio_path)
+                    else:
+                        logger.warning(f"gTTS returned small audio ({len(audio_data)} bytes), retrying...")
+                        last_error = f"Small audio output ({len(audio_data)} bytes)"
+                        # Clean up small file
+                        try:
+                            os.unlink(audio_path)
+                        except:
+                            pass
+                        continue
+                        
+                except Exception as e:
+                    last_error = f"{type(e).__name__}: {e}"
+                    logger.warning(f"gTTS attempt {attempt + 1} failed: {last_error}")
+                    # Shorter wait time - only wait if not last attempt
+                    if attempt < max_retries - 1:
+                        time.sleep(0.5)  # Reduced from 1 second to 0.5 seconds for faster fallback
+                    continue
+            
+            logger.error(f"gTTS failed after {max_retries} attempts. Last error: {last_error}. Using pyttsx3 fallback.")
+            # Fall back to pyttsx3
+            logger.info("Falling back to pyttsx3 synthesis")
+            return self._pyttsx3_synthesis(text, language)
             
         except Exception as e:
-            logger.error(f"Google TTS error: {e}")
-            return self._generate_silence()
+            logger.error(f"gTTS synthesis error: {type(e).__name__}: {e}")
+            logger.debug(f"Full traceback: {traceback.format_exc()}")
+            logger.info("gTTS error - using pyttsx3 fallback")
+            return self._pyttsx3_synthesis(text, language)
 
-    def _pyttsx3_synthesis(self, text: str, language: str) -> bytes:
-        """Generate speech using pyttsx3 (offline)"""
+    def _pyttsx3_synthesis(self, text: str, language: str) -> tuple:
+        """Generate speech using pyttsx3 (offline) - works as fallback
+        Returns (audio_data: bytes, audio_path: str) tuple
+        """
         try:
             if not self.tts_engine:
-                return self._generate_silence()
+                logger.warning("pyttsx3 engine not initialized")
+                return (self._generate_silence(), None)
+            
+            logger.debug(f"pyttsx3 synthesis starting for language {language}")
             
             # Set voice based on language (limited support)
             voices = self.tts_engine.getProperty('voices')
+            logger.debug(f"Available voices: {len(voices)}")
             
             # Try to find appropriate voice
             target_voice = None
             if language == 'hi' and voices:
                 # Look for Hindi voice
                 for voice in voices:
-                    if 'hindi' in voice.name.lower() or 'hi' in voice.id.lower():
+                    voice_name_lower = voice.name.lower()
+                    voice_id_lower = voice.id.lower()
+                    logger.debug(f"Checking voice: {voice.name} (ID: {voice.id})")
+                    
+                    if 'hindi' in voice_name_lower or 'hi-in' in voice_id_lower or ('समान' in voice.name):
                         target_voice = voice.id
+                        logger.info(f"Found Hindi voice: {voice.name}")
                         break
+                
+                if not target_voice and voices:
+                    # If no Hindi voice found, log available voices
+                    logger.warning(f"No Hindi voice found. Available voices: {[v.name for v in voices]}")
+                    # Use first available voice
+                    target_voice = voices[0].id
+                    logger.info(f"Using first available voice: {voices[0].name}")
+            elif voices and not target_voice:
+                # Use first available voice as fallback
+                target_voice = voices[0].id
+                logger.debug(f"Using first available voice: {voices[0].name}")
             
             if target_voice:
                 self.tts_engine.setProperty('voice', target_voice)
+                logger.debug(f"Set voice to: {target_voice}")
             
             # Generate speech to temporary file
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
-                temp_file_path = temp_file.name
+            import uuid
+            audio_filename = f"tts_output_{language}_{uuid.uuid4().hex[:8]}.wav"
+            temp_file_path = os.path.join(tempfile.gettempdir(), audio_filename)
             
             try:
+                logger.debug(f"Saving audio to temporary file: {temp_file_path}")
                 self.tts_engine.save_to_file(text, temp_file_path)
                 self.tts_engine.runAndWait()
                 
+                # Add delay to ensure file is fully written to disk
+                logger.debug("Waiting for file to be written...")
+                time.sleep(1.0)  # Increased from 0.5 to 1.0 seconds
+                
+                # Verify file exists and has content
+                if not os.path.exists(temp_file_path):
+                    logger.warning("Audio file was not created")
+                    return (self._generate_silence(), None)
+                
+                file_size = os.path.getsize(temp_file_path)
+                logger.debug(f"Generated file size: {file_size} bytes")
+                
+                if file_size == 0:
+                    logger.warning("pyttsx3 generated empty audio file, retrying with longer delay...")
+                    # Retry once more with longer delay
+                    time.sleep(2.0)
+                    file_size = os.path.getsize(temp_file_path)
+                    logger.debug(f"After retry, file size: {file_size} bytes")
+                
                 # Read the generated audio file
-                with open(temp_file_path, 'rb') as audio_file:
-                    audio_data = audio_file.read()
+                if os.path.exists(temp_file_path) and file_size > 0:
+                    with open(temp_file_path, 'rb') as audio_file:
+                        audio_data = audio_file.read()
+                    
+                    if audio_data:
+                        logger.info(f"pyttsx3 synthesis successful, audio size: {len(audio_data)} bytes, saved to {temp_file_path}")
+                        return (audio_data, temp_file_path)
                 
-                return audio_data
+                # If file is empty or doesn't exist, return silence
+                logger.warning("pyttsx3 audio file is empty or unreadable")
+                return (self._generate_silence(), None)
                 
+            except Exception as e:
+                logger.error(f"pyttsx3 save_to_file error: {type(e).__name__}: {e}")
+                logger.debug(f"Full traceback: {traceback.format_exc()}")
+                return (self._generate_silence(), None)
             finally:
                 # Clean up
                 try:
-                    os.unlink(temp_file_path)
-                except:
-                    pass
+                    if os.path.exists(temp_file_path):
+                        os.unlink(temp_file_path)
+                except Exception as e:
+                    logger.debug(f"Cleanup error: {e}")
                     
         except Exception as e:
-            logger.error(f"pyttsx3 synthesis error: {e}")
-            return self._generate_silence()
+            logger.error(f"pyttsx3 synthesis error: {type(e).__name__}: {e}")
+            logger.debug(f"Full traceback: {traceback.format_exc()}")
+            return (self._generate_silence(), None)
 
     def _generate_silence(self, duration: float = 1.0) -> bytes:
         """Generate silence as fallback when TTS fails"""
