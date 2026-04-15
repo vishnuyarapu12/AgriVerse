@@ -1,28 +1,47 @@
 import React, { useState, useRef, useEffect } from "react";
 import ResponseCard from "./ResponseCard";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useFormState } from "../contexts/FormStateContext";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { useVoiceInput } from "../hooks/useVoiceInput";
 import VoiceInputButton from "./VoiceInputButton";
 
 export default function DiseaseForm() {
-  const [images, setImages] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
-  const [response, setResponse] = useState(null);
-  const [originalResponse, setOriginalResponse] = useState(null);
-  const [originalAdvisory, setOriginalAdvisory] = useState("");
-  const [sourceLanguage, setSourceLanguage] = useState("en");
-  const [text, setText] = useState("");
+  const { state: savedState, saveState } = useFormState('disease');
+  
+  // Initialize state from saved state or defaults
+  const [images, setImages] = useState(savedState.images || []);
+  const [imagePreviews, setImagePreviews] = useState(savedState.imagePreviews || []);
+  const [response, setResponse] = useState(savedState.response || null);
+  const [originalResponse, setOriginalResponse] = useState(savedState.originalResponse || null);
+  const [originalAdvisory, setOriginalAdvisory] = useState(savedState.originalAdvisory || "");
+  const [sourceLanguage, setSourceLanguage] = useState(savedState.sourceLanguage || "en");
+  const [text, setText] = useState(savedState.text || "");
   const [loading, setLoading] = useState(false);
   const [audioGenerating, setAudioGenerating] = useState(false);
-  const [audioReady, setAudioReady] = useState(false);
-  const [cropModel, setCropModel] = useState("");
+  const [audioReady, setAudioReady] = useState(savedState.audioReady || false);
+  const [cropModel, setCropModel] = useState(savedState.cropModel || "");
   const [modelOptions, setModelOptions] = useState([]);
   const audioRef = useRef();
   const audioToastIdRef = useRef(null);
   const { currentLanguage, t } = useLanguage();
   const { isListening, startVoiceInput } = useVoiceInput(currentLanguage);
+
+  // Save state to context whenever it changes
+  useEffect(() => {
+    saveState({
+      images,
+      imagePreviews,
+      response,
+      originalResponse,
+      originalAdvisory,
+      sourceLanguage,
+      text,
+      audioReady,
+      cropModel
+    });
+  }, [images, imagePreviews, response, originalResponse, originalAdvisory, sourceLanguage, text, audioReady, cropModel, saveState]);
 
   useEffect(() => {
     let cancelled = false;

@@ -11,6 +11,7 @@ import VoiceCapabilities from "./components/VoiceCapabilities";
 import LanguageWrapper from "./components/LanguageWrapper";
 import { Toaster } from "react-hot-toast";
 import { LanguageProvider, useLanguage } from "./contexts/LanguageContext";
+import { FormStateProvider } from "./contexts/FormStateContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 const FooterComponent = () => {
@@ -56,52 +57,54 @@ export default function App() {
 
   return (
     <LanguageProvider>
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-indigo-50">
-        <Toaster position="top-right" />
-        
-        <LanguageWrapper>
-          {/* Header */}
-          <Header />
+      <FormStateProvider>
+        <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-indigo-50">
+          <Toaster position="top-right" />
           
-          {/* Language Selector */}
-          <div className="max-w-6xl mx-auto px-6">
-            <LanguageSelector />
-          </div>
+          <LanguageWrapper>
+            {/* Header */}
+            <Header />
+            
+            {/* Language Selector */}
+            <div className="max-w-6xl mx-auto px-6">
+              <LanguageSelector />
+            </div>
 
-          {/* Navigation Tabs */}
-          <NavigationTabs 
-            tabs={tabs} 
-            activeTab={activeTab} 
-            onTabChange={setActiveTab} 
-          />
+            {/* Navigation Tabs */}
+            <NavigationTabs 
+              tabs={tabs} 
+              activeTab={activeTab} 
+              onTabChange={setActiveTab} 
+            />
 
-          {/* Main Content */}
-          <div className="max-w-6xl mx-auto px-6 py-8">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0.8, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0.8, y: -10 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="space-y-8"
-              >
-                {activeTab === 'disease' && <DiseaseForm />}
-                {activeTab === 'advisory' && <AdvisoryForm />}
-                {activeTab === 'organic' && <OrganicFarmingForm />}
-                {activeTab === 'tools' && <FarmerTools />}
-                {activeTab === 'history' && <QueryHistory />}
-                {activeTab === 'voice' && (
-                  <VoiceCapabilities capabilities={voiceCapabilities} />
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+            {/* Main Content */}
+            <div className="max-w-6xl mx-auto px-6 py-8">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0.8, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0.8, y: -10 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  className="space-y-8"
+                >
+                  {activeTab === 'disease' && <DiseaseForm />}
+                  {activeTab === 'advisory' && <AdvisoryForm />}
+                  {activeTab === 'organic' && <OrganicFarmingForm />}
+                  {activeTab === 'tools' && <FarmerTools />}
+                  {activeTab === 'history' && <QueryHistory />}
+                  {activeTab === 'voice' && (
+                    <VoiceCapabilities capabilities={voiceCapabilities} />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
 
-          {/* Footer */}
-          <FooterComponent />
-        </LanguageWrapper>
-      </div>
+            {/* Footer */}
+            <FooterComponent />
+          </LanguageWrapper>
+        </div>
+      </FormStateProvider>
     </LanguageProvider>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import ResponseCard from "./ResponseCard";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useFormState } from "../contexts/FormStateContext";
 import useTranslation from "../hooks/useTranslation";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
@@ -8,15 +9,18 @@ import { useVoiceInput } from "../hooks/useVoiceInput";
 import VoiceInputButton from "./VoiceInputButton";
 
 export default function AdvisoryForm() {
-  const [cropName, setCropName] = useState("");
-  const [location, setLocation] = useState("");
-  const [soilType, setSoilType] = useState("");
-  const [season, setSeason] = useState("");
-  const [query, setQuery] = useState("");
-  const [response, setResponse] = useState(null);
+  const { state: savedState, saveState } = useFormState('advisory');
+  
+  // Initialize state from saved state or defaults
+  const [cropName, setCropName] = useState(savedState.cropName || "");
+  const [location, setLocation] = useState(savedState.location || "");
+  const [soilType, setSoilType] = useState(savedState.soilType || "");
+  const [season, setSeason] = useState(savedState.season || "");
+  const [query, setQuery] = useState(savedState.query || "");
+  const [response, setResponse] = useState(savedState.response || null);
   const [loading, setLoading] = useState(false);
   const [audioGenerating, setAudioGenerating] = useState(false);
-  const [audioReady, setAudioReady] = useState(false);
+  const [audioReady, setAudioReady] = useState(savedState.audioReady || false);
   const audioRef = useRef();
   const audioToastIdRef = useRef(null);
   const { currentLanguage, t } = useLanguage();
@@ -25,6 +29,19 @@ export default function AdvisoryForm() {
   const { isListening: isListeningCrop, startVoiceInput: startCropVoice } = useVoiceInput(currentLanguage);
   const { isListening: isListeningLocation, startVoiceInput: startLocationVoice } = useVoiceInput(currentLanguage);
   const { isListening: isListeningQuery, startVoiceInput: startQueryVoice } = useVoiceInput(currentLanguage);
+
+  // Save state to context whenever it changes
+  useEffect(() => {
+    saveState({
+      cropName,
+      location,
+      soilType,
+      season,
+      query,
+      response,
+      audioReady
+    });
+  }, [cropName, location, soilType, season, query, response, audioReady, saveState]);
 
   const soilTypes = [
     { value: "alluvial", label: "Alluvial" },

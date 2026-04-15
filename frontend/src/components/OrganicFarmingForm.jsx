@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useFormState } from "../contexts/FormStateContext";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { useVoiceInput } from "../hooks/useVoiceInput";
@@ -8,12 +9,15 @@ import VoiceInputButton from "./VoiceInputButton";
 const QUICK_CROP_KEYS = ["Rice", "Cotton", "Tomato", "Potato", "Maize", "Chilli", "Groundnut"];
 
 export default function OrganicFarmingForm() {
-  const [cropName, setCropName] = useState("");
-  const [location, setLocation] = useState("Telangana, India");
-  const [response, setResponse] = useState(null);
+  const { state: savedState, saveState } = useFormState('organic');
+  
+  // Initialize state from saved state or defaults
+  const [cropName, setCropName] = useState(savedState.cropName || "");
+  const [location, setLocation] = useState(savedState.location || "Telangana, India");
+  const [response, setResponse] = useState(savedState.response || null);
   const [loading, setLoading] = useState(false);
   const [audioGenerating, setAudioGenerating] = useState(false);
-  const [audioReady, setAudioReady] = useState(false);
+  const [audioReady, setAudioReady] = useState(savedState.audioReady || false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
@@ -23,6 +27,16 @@ export default function OrganicFarmingForm() {
   const { currentLanguage, t } = useLanguage();
   const { isListening: isListeningCrop, startVoiceInput: startCropVoice } = useVoiceInput(currentLanguage);
   const { isListening: isListeningLocation, startVoiceInput: startLocationVoice } = useVoiceInput(currentLanguage);
+
+  // Save state to context whenever it changes
+  useEffect(() => {
+    saveState({
+      cropName,
+      location,
+      response,
+      audioReady
+    });
+  }, [cropName, location, response, audioReady, saveState]);
 
   const handleSubmit = async () => {
     if (!cropName.trim()) {
